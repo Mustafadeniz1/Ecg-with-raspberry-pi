@@ -1,0 +1,26 @@
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\obj\Debug\ECG ARAYÜZ1.csproj.AssemblyReference.cache
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\obj\Debug\ECG_ARAYÜZ1.Properties.Resources.resources
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\obj\Debug\ECG ARAYÜZ1.csproj.GenerateResource.cache
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\obj\Debug\ECG ARAYÜZ1.csproj.CoreCompileInputs.cache
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\bin\Debug\ECG ARAYÜZ1.exe.config
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\bin\Debug\ECG ARAYÜZ1.exe
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\bin\Debug\ECG ARAYÜZ1.pdb
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\bin\Debug\Common.Logging.Core.dll
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\bin\Debug\Common.Logging.dll
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\bin\Debug\LaunchDarkly.Cache.dll
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\bin\Debug\LaunchDarkly.Client.dll
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\bin\Debug\LaunchDarkly.Common.StrongName.dll
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\bin\Debug\LaunchDarkly.EventSource.dll
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\bin\Debug\LaunchDarkly.Logging.dll
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\bin\Debug\Newtonsoft.Json.dll
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\bin\Debug\Common.Logging.pdb
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\bin\Debug\Common.Logging.xml
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\bin\Debug\Common.Logging.Core.pdb
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\bin\Debug\Common.Logging.Core.xml
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\bin\Debug\LaunchDarkly.EventSource.xml
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\bin\Debug\LaunchDarkly.Logging.xml
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\bin\Debug\Newtonsoft.Json.xml
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\obj\Debug\ECG ARAY.35B9E7AD.Up2Date
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\obj\Debug\ECG ARAYÜZ1.exe
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\obj\Debug\ECG ARAYÜZ1.pdb
+C:\Users\Pc\Desktop\deneme ecg\ECG ARAYÜZ1\obj\Debug\ECG_ARAYÜZ1.Form2.resources

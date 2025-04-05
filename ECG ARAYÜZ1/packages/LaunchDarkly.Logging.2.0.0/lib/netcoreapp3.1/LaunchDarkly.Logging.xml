@@ -1,0 +1,740 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>LaunchDarkly.Logging</name>
+    </assembly>
+    <members>
+        <member name="T:LaunchDarkly.Logging.Extensions">
+            <summary>
+            Extension methods for convenience in implementing log adapters.
+            </summary>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Extensions.Uppercase(LaunchDarkly.Logging.LogLevel)">
+            <summary>
+            Returns an all-uppercase string describing the log level.
+            </summary>
+            <remarks>
+            This is more efficient than <c>level.ToString().ToUpper()</c>.
+            </remarks>
+            <param name="level"></param>
+            <returns>DEBUG, INFO, etc.</returns>
+        </member>
+        <member name="T:LaunchDarkly.Logging.IChannel">
+            <summary>
+            The underlying implementation object used by some <see cref="T:LaunchDarkly.Logging.Logger"/> instance.
+            </summary>
+            <remarks>
+            <para>
+            Applications or libraries that generate log output do not need to interact directly with
+            <see cref="T:LaunchDarkly.Logging.IChannel"/>; implementations of it are created by whatever <see cref="T:LaunchDarkly.Logging.ILogAdapter"/>
+            is being used.
+            </para>
+            <para>
+            The logger will send messages to this object, each with a <see cref="T:LaunchDarkly.Logging.LogLevel"/>. If output is
+            known to be completely disabled for the specified level, the <c>IChannel</c> method should
+            return immediately and do no other processing. Otherwise, for simple messages it should call
+            <c>ToString()</c> on the message parameter. It can always assume that <c>message</c> and
+            <c>format</c> parameters are non-null.
+            </para>
+            <para>
+            The reason that <c>format</c>/<c>param</c> values are passed straight through from <c>Logger</c>
+            to <c>IChannel</c>, instead of having <c>Logger</c> do the string interpolation, is that an
+            <see cref="T:LaunchDarkly.Logging.IChannel"/> implementation that is delegating to another logging framework may not
+            be able to know for sure whether a given log level is enabled (since filtering rules might be
+            configured elsewhere in that framework); providing the parameters separately lets the
+            implementation class decide whether or not to incur the overhead of string interpolation.
+            </para>
+            <para>
+            The reason that there are four overloads for <c>Log()</c> is for efficiency, to avoid
+            allocating a params array in the common case of a message with fewer than three parameters.
+            </para>
+            </remarks>
+        </member>
+        <member name="M:LaunchDarkly.Logging.IChannel.IsEnabled(LaunchDarkly.Logging.LogLevel)">
+            <summary>
+            Tests whether log output for a certain level is at least potentially visible.
+            </summary>
+            <remarks>
+            This is the underlying implementation of <see cref="M:LaunchDarkly.Logging.Logger.IsEnabled(LaunchDarkly.Logging.LogLevel)"/>.
+            The method should return true if the specified level is enabled in the sense that it will
+            not be simply discarded by this <see cref="T:LaunchDarkly.Logging.IChannel"/>. It should only return false if the
+            <see cref="T:LaunchDarkly.Logging.IChannel"/> will definitely discard that level.
+            </remarks>
+            <param name="level"></param>
+            <returns>true if this level is potentially visible</returns>
+        </member>
+        <member name="M:LaunchDarkly.Logging.IChannel.Log(LaunchDarkly.Logging.LogLevel,System.Object)">
+            <summary>
+            Logs a simple message with no parameters.
+            </summary>
+            <param name="level">the log level</param>
+            <param name="message">the message</param>
+        </member>
+        <member name="M:LaunchDarkly.Logging.IChannel.Log(LaunchDarkly.Logging.LogLevel,System.String,System.Object)">
+            <summary>
+            Logs a message with a single parameter.
+            </summary>
+            <param name="level">the log level</param>
+            <param name="format">the format string</param>
+            <param name="param">the parameter</param>
+        </member>
+        <member name="M:LaunchDarkly.Logging.IChannel.Log(LaunchDarkly.Logging.LogLevel,System.String,System.Object,System.Object)">
+            <summary>
+            Logs a message with two parameters.
+            </summary>
+            <param name="level">the log level</param>
+            <param name="format">the format string</param>
+            <param name="param1">the first parameter</param>
+            <param name="param2">the second parameter</param>
+        </member>
+        <member name="M:LaunchDarkly.Logging.IChannel.Log(LaunchDarkly.Logging.LogLevel,System.String,System.Object[])">
+            <summary>
+            Logs a message with any number of parameters.
+            </summary>
+            <param name="level">the log level</param>
+            <param name="format">the format string</param>
+            <param name="allParams">the parameters</param>
+        </member>
+        <member name="T:LaunchDarkly.Logging.ILogAdapter">
+            <summary>
+            An abstraction of some mechanism for producing log output.
+            </summary>
+            <remarks>
+            <para>
+            Any LaunchDarkly library that can generate log output through <c>LaunchDarkly.Logging</c>
+            has a configuration option of type <see cref="T:LaunchDarkly.Logging.ILogAdapter"/>, which defines the
+            implementation details of what to do with the log output. Built-in basic implementations
+            are available through the <see cref="T:LaunchDarkly.Logging.Logs"/> class, and adapters that delegate to other
+            logging frameworks can be provided by other LaunchDarkly packages or by the application.
+            </para>
+            <para>
+            The basic model is that whatever component will be writing to the logs will define at
+            least one name for an output channel. The adapter's <see cref="M:LaunchDarkly.Logging.ILogAdapter.NewChannel(System.String)"/> method
+            takes a name and returns a low-level <see cref="T:LaunchDarkly.Logging.IChannel"/> implementation that accepts log
+            messages for any <see cref="T:LaunchDarkly.Logging.LogLevel"/>; this is wrapped in the standard <see cref="T:LaunchDarkly.Logging.Logger"/>
+            class, which is what the rest of the LaunchDarkly library code interacts with.
+            </para>
+            <para>
+            Applications should not need to interact directly with <see cref="T:LaunchDarkly.Logging.ILogAdapter"/>, beyond
+            the initial configuration step of choosing which one to use.
+            </para>
+            </remarks>
+        </member>
+        <member name="M:LaunchDarkly.Logging.ILogAdapter.NewChannel(System.String)">
+            <summary>
+            The logger calls this method to obtain a named output channel.
+            </summary>
+            <remarks>
+            The name will be included in all log output for this channel. Channels are meant to be
+            retained and reused by the components they belong to, so the ILogAdapter does not need
+            to cache them.
+            </remarks>
+            <param name="name">an identifying name</param>
+            <returns>an implementation of <see cref="T:LaunchDarkly.Logging.IChannel"/></returns>
+        </member>
+        <member name="T:LaunchDarkly.Logging.ILogAdapterExtensions">
+            <summary>
+            Extension methods that can be applied to any <see cref="T:LaunchDarkly.Logging.ILogAdapter"/>.
+            </summary>
+        </member>
+        <member name="M:LaunchDarkly.Logging.ILogAdapterExtensions.Level(LaunchDarkly.Logging.ILogAdapter,LaunchDarkly.Logging.LogLevel)">
+             <summary>
+             Disables log output below the specified level.
+             </summary>
+             <remarks>
+             This is a decorator that can be applied to any <see cref="T:LaunchDarkly.Logging.ILogAdapter"/>, either one of
+             the standard ones available in <see cref="T:LaunchDarkly.Logging.Logs"/> or a custom implementation. Any log
+             messages for a lower level will be immediately discarded; all others will be forwarded to
+             the underlying logging implementation (which may also have other filtering rules of its
+             own).
+             </remarks>
+             <example>
+                 // This one will write all log messages to Console.Error, including Debug messages
+                 var unfilteredLogging = Logs.ToConsole;
+            
+                 // This one will write only Warn and Error messages
+                 var filteredLogging = Logs.ToConsole.Level(Warn);
+             </example>
+             <param name="adapter"></param>
+             <param name="minimumLevel"></param>
+             <returns>an <see cref="T:LaunchDarkly.Logging.ILogAdapter"/> that wraps the original one but filters out log
+             messages of lower levels</returns>
+        </member>
+        <member name="M:LaunchDarkly.Logging.ILogAdapterExtensions.Logger(LaunchDarkly.Logging.ILogAdapter,System.String)">
+            <summary>
+            Convenience method for creating logger instances.
+            </summary>
+            <remarks>
+            This is a shortcut for calling <see cref="M:LaunchDarkly.Logging.Logger.WithAdapter(LaunchDarkly.Logging.ILogAdapter,System.String)"/>.
+            Application code will not normally use this method; it is used by library code
+            to set up individual named loggers that a library will log to.
+            </remarks>
+            <param name="adapter">the <see cref="T:LaunchDarkly.Logging.ILogAdapter"/> that provides the
+            underlying implementation of logging</param>
+            <param name="name">the name for this logger</param>
+            <returns>a logger instance</returns>
+        </member>
+        <member name="M:LaunchDarkly.Logging.LevelFilter.NewChannel(System.String)">
+            <summary>
+            Called internally by the logging framework.
+            </summary>
+            <param name="name">the channel name</param>
+            <returns>a new channel</returns>
+        </member>
+        <member name="T:LaunchDarkly.Logging.LogCapture">
+            <summary>
+            A mechanism for capturing logger output in memory.
+            </summary>
+            <remarks>
+            <para>
+            Calling <see cref="M:LaunchDarkly.Logging.Logs.Capture"/> provides a <c>LogCapture</c> object that accumulates
+            all log output from any code that is configured to use it as the log adapter. This is mainly
+            intended for testing.
+            </para>
+            <para>
+            All messages that come to this object are captured regardless of the log level. If you want
+            to filter out messages below a certain level, you can apply <see cref="M:LaunchDarkly.Logging.ILogAdapterExtensions.Level(LaunchDarkly.Logging.ILogAdapter,LaunchDarkly.Logging.LogLevel)"/>
+            and pass the resulting filtered adapter to whatever component will be doing the logging, in
+            place of the original <see cref="T:LaunchDarkly.Logging.LogCapture"/> object.
+            </para>
+            </remarks>
+            <example>
+                var logSink = Logs.Capture();
+                // ... execute some code that produces log output to this adapter
+                var capturedMessages = sink.GetMessages();
+            </example>
+        </member>
+        <member name="M:LaunchDarkly.Logging.LogCapture.NewChannel(System.String)">
+            <summary>
+            Called internally by the logging framework.
+            </summary>
+            <param name="name">the channel name</param>
+            <returns>a new channel</returns>
+        </member>
+        <member name="M:LaunchDarkly.Logging.LogCapture.GetMessages">
+            <summary>
+            Returns all captured messages.
+            </summary>
+            <returns>a copy of the messages</returns>
+        </member>
+        <member name="M:LaunchDarkly.Logging.LogCapture.GetMessageStrings">
+            <summary>
+            Returns all captured messages converted to strings, in the format "[LoggerName] LEVEL: text".
+            </summary>
+            <returns>a copy of the messages as strings</returns>
+        </member>
+        <member name="M:LaunchDarkly.Logging.LogCapture.HasMessageWithText(LaunchDarkly.Logging.LogLevel,System.String)">
+            <summary>
+            Tests whether any captured message for the given level exactly matches the given text.
+            </summary>
+            <param name="level">a log level</param>
+            <param name="text">the desired message text</param>
+            <returns></returns>
+        </member>
+        <member name="M:LaunchDarkly.Logging.LogCapture.HasMessageWithRegex(LaunchDarkly.Logging.LogLevel,System.String)">
+            <summary>
+            Tests whether any captured message for the given level matches the given regular expression.
+            </summary>
+            <param name="level">a log level</param>
+            <param name="pattern">a regular expression</param>
+            <returns></returns>
+        </member>
+        <member name="M:LaunchDarkly.Logging.LogCapture.ToString">
+            <summary>
+            Returns all of the captured log output as a string.
+            </summary>
+            <returns>a string containing all captured log lines</returns>
+        </member>
+        <member name="T:LaunchDarkly.Logging.LogCapture.Message">
+            <summary>
+            Information about a captured log message.
+            </summary>
+        </member>
+        <member name="P:LaunchDarkly.Logging.LogCapture.Message.LoggerName">
+            <summary>
+            The name of the logger that produced the message.
+            </summary>
+        </member>
+        <member name="P:LaunchDarkly.Logging.LogCapture.Message.Level">
+            <summary>
+            The log level of the message.
+            </summary>
+        </member>
+        <member name="P:LaunchDarkly.Logging.LogCapture.Message.Text">
+            <summary>
+            The text of the message, after any parameters have been substituted.
+            </summary>
+        </member>
+        <member name="M:LaunchDarkly.Logging.LogCapture.Message.#ctor(System.String,LaunchDarkly.Logging.LogLevel,System.String)">
+            <summary>
+            Constructs a new instance.
+            </summary>
+            <param name="loggerName">the name of the logger that produced the message</param>
+            <param name="level">the log level of the message</param>
+            <param name="text">the text of the message, after any parameters have been substituted</param>
+        </member>
+        <member name="M:LaunchDarkly.Logging.LogCapture.Message.ToString">
+            <summary>
+            Summarizes the message in the format "[LoggerName] LEVEL: text".
+            </summary>
+            <returns>a descriptive string</returns>
+        </member>
+        <member name="T:LaunchDarkly.Logging.Logger">
+            <summary>
+            A basic logger facade that delegates to an underlying output implementation.
+            </summary>
+            <remarks>
+            <para>
+            Code that generates log output will send it through this class. What happens to
+            the output depends on the <see cref="T:LaunchDarkly.Logging.ILogAdapter"/> that was used to create the
+            <see cref="T:LaunchDarkly.Logging.Logger"/>.
+            </para>
+            <para>
+            The logger has output methods for each of the levels defined in <see cref="T:LaunchDarkly.Logging.LogLevel"/>.
+            Each can take either a simple string, or a format string with variable parameters in
+            the syntax used by <see cref="M:System.String.Format(System.String,System.Object)"/>. For efficiency (to
+            avoid unnecessarily creating varargs arrays), each method has four overloads: one
+            simple string, format with one parameter, format with two parameters, and format
+            with an arbitrary number of parameters.
+            </para>
+            </remarks>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logger.WithAdapter(LaunchDarkly.Logging.ILogAdapter,System.String)">
+            <summary>
+            Creates a named logger instance using the specified adapter.
+            </summary>
+            <remarks>
+            This method (or the equivalent shortcut <c>adapter.Logger(name)</c>) is called by
+            library code to acquire a <c>Logger</c> instance that it will write output to.
+            </remarks>
+            <param name="adapter">the <see cref="T:LaunchDarkly.Logging.ILogAdapter"/> that defines the actual logging
+            implementation</param>
+            <param name="name">the name for this logger</param>
+            <returns>a new logger instance</returns>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logger.SubLogger(System.String)">
+            <summary>
+            Creates a logger instance derived from this instance.
+            </summary>
+            <param name="nameSuffix">will be appended to the current logger's name, separated by a
+            period, to create the new logger's name</param>
+            <returns>a new logger instance</returns>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logger.IsEnabled(LaunchDarkly.Logging.LogLevel)">
+            <summary>
+            Tests whether log output for a certain level is at least potentially visible.
+            </summary>
+            <remarks>
+            <para>
+            Generally, any desired level filtering should be set up in the initial logging
+            configuration, and code that generates log messages should simply call methods like
+            <see cref="M:LaunchDarkly.Logging.Logger.Info(System.Object)"/> without having to know whether that particular level
+            is enabled or is being filtered out. However, if some kind of log message is particularly
+            expensive to compute, you may call <c>IsEnabled</c>; a false value means you can skip
+            trying to log any message at that level.
+            </para>
+            <para>
+            Another approach is to generate any computationally expensive output lazily, such as by
+            using the methods in <see cref="T:LaunchDarkly.Logging.LogValues"/>.
+            </para>
+            </remarks>
+            <param name="level">a log level</param>
+            <returns>true if this level is potentially visible</returns>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logger.Debug(System.Object)">
+            <summary>
+            Writes a message at <see cref="F:LaunchDarkly.Logging.LogLevel.Debug"/> level.
+            </summary>
+            <param name="message">the message; if null, nothing is logged</param>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logger.Debug(System.String,System.Object)">
+            <summary>
+            Writes a message at <see cref="F:LaunchDarkly.Logging.LogLevel.Debug"/> level with one parameter.
+            </summary>
+            <param name="format">the format string; if null, nothing is logged</param>
+            <param name="param">the parameter</param>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logger.Debug(System.String,System.Object,System.Object)">
+            <summary>
+            Writes a message at <see cref="F:LaunchDarkly.Logging.LogLevel.Debug"/> level with two parameters.
+            </summary>
+            <param name="format">the format string; if null, nothing is logged</param>
+            <param name="param1">the first parameter</param>
+            <param name="param2">the second parameter</param>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logger.Debug(System.String,System.Object[])">
+            <summary>
+            Writes a message at <see cref="F:LaunchDarkly.Logging.LogLevel.Debug"/> level with any number of parameters.
+            </summary>
+            <param name="format">the format string; if null, nothing is logged</param>
+            <param name="allParams">the parameters</param>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logger.Info(System.Object)">
+            <summary>
+            Writes a message at <see cref="F:LaunchDarkly.Logging.LogLevel.Info"/> level.
+            </summary>
+            <param name="message">the message</param>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logger.Info(System.String,System.Object)">
+            <summary>
+            Writes a message at <see cref="F:LaunchDarkly.Logging.LogLevel.Info"/> level with one parameter.
+            </summary>
+            <param name="format">the format string</param>
+            <param name="param">the parameter</param>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logger.Info(System.String,System.Object,System.Object)">
+            <summary>
+            Writes a message at <see cref="F:LaunchDarkly.Logging.LogLevel.Info"/> level with two parameters.
+            </summary>
+            <param name="format">the format string</param>
+            <param name="param1">the first parameter</param>
+            <param name="param2">the second parameter</param>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logger.Info(System.String,System.Object[])">
+            <summary>
+            Writes a message at <see cref="F:LaunchDarkly.Logging.LogLevel.Info"/> level with any number of parameters.
+            </summary>
+            <param name="format">the format string</param>
+            <param name="allParams">the parameters</param>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logger.Warn(System.Object)">
+            <summary>
+            Writes a message at <see cref="F:LaunchDarkly.Logging.LogLevel.Warn"/> level.
+            </summary>
+            <param name="message">the message</param>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logger.Warn(System.String,System.Object)">
+            <summary>
+            Writes a message at <see cref="F:LaunchDarkly.Logging.LogLevel.Warn"/> level with one parameter.
+            </summary>
+            <param name="format">the format string</param>
+            <param name="param">the parameter</param>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logger.Warn(System.String,System.Object,System.Object)">
+            <summary>
+            Writes a message at <see cref="F:LaunchDarkly.Logging.LogLevel.Warn"/> level with two parameters.
+            </summary>
+            <param name="format">the format string</param>
+            <param name="param1">the first parameter</param>
+            <param name="param2">the second parameter</param>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logger.Warn(System.String,System.Object[])">
+            <summary>
+            Writes a message at <see cref="F:LaunchDarkly.Logging.LogLevel.Warn"/> level with any number of parameters.
+            </summary>
+            <param name="format">the format string</param>
+            <param name="allParams">the parameters</param>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logger.Error(System.Object)">
+            <summary>
+            Writes a message at <see cref="F:LaunchDarkly.Logging.LogLevel.Error"/> level.
+            </summary>
+            <param name="message">the message</param>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logger.error(System.String,System.Object)">
+            <summary>
+            Writes a message at <see cref="F:LaunchDarkly.Logging.LogLevel.Error"/> level with one parameter.
+            </summary>
+            <param name="format">the format string</param>
+            <param name="param">the parameter</param>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logger.Error(System.String,System.Object,System.Object)">
+            <summary>
+            Writes a message at <see cref="F:LaunchDarkly.Logging.LogLevel.Error"/> level with two parameters.
+            </summary>
+            <param name="format">the format string</param>
+            <param name="param1">the first parameter</param>
+            <param name="param2">the second parameter</param>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logger.Error(System.String,System.Object[])">
+            <summary>
+            Writes a message at <see cref="F:LaunchDarkly.Logging.LogLevel.Error"/> level with any number of parameters.
+            </summary>
+            <param name="format">the format string</param>
+            <param name="allParams">the parameters</param>
+        </member>
+        <member name="T:LaunchDarkly.Logging.LogLevel">
+            <summary>
+            Enumeration of the logging levels defined by the LaunchDarkly.Logging abstraction.
+            </summary>
+            <remarks>
+            This is the same basic level concept that exists in most logging frameworks. Levels
+            are ranked in ascending order from <see cref="F:LaunchDarkly.Logging.LogLevel.Debug"/> to <see cref="F:LaunchDarkly.Logging.LogLevel.Error"/>. Whatever
+            minimum level is enabled for the logger, any messages at a lower level will be
+            suppressed: for instance, if the minimum level is <see cref="F:LaunchDarkly.Logging.LogLevel.Warn"/>, then there will be
+            no output for <see cref="F:LaunchDarkly.Logging.LogLevel.Debug"/> or <see cref="F:LaunchDarkly.Logging.LogLevel.Info"/>.
+            </remarks>
+        </member>
+        <member name="F:LaunchDarkly.Logging.LogLevel.Debug">
+            <summary>
+            This level is for very detailed and verbose messages that are rarely useful except
+            in diagnosing an unusual problem.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.Logging.LogLevel.Info">
+            <summary>
+            This level is for informational messages that are logged during normal operation.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.Logging.LogLevel.Warn">
+            <summary>
+            This level is for messages about unexpected conditions that may be worth noting,
+            but that do not necessarily prevent things from working.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.Logging.LogLevel.Error">
+            <summary>
+            This level is for errors that should not happen during normal operation
+            and should be investigated.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.Logging.LogLevel.None">
+            <summary>
+            This level is not used for output; setting the minimum enabled level to None
+            disables all output.
+            </summary>
+        </member>
+        <member name="T:LaunchDarkly.Logging.Logs">
+            <summary>
+            Factory methods for the basic logging implementations in this package.
+            </summary>
+            <remarks>
+            See <see cref="T:LaunchDarkly.Logging.ILogAdapter"/> for more about how <c>LaunchDarkly.Logging</c> works with
+            different implementations of logging. The methods and properties in <c>Logs</c> provide
+            easy access to basic behaviors like logging to the console or to a file, or capturing log
+            output for testing; if you need to direct the log output to another logging framework that
+            your application is using, you will use an <see cref="T:LaunchDarkly.Logging.ILogAdapter"/> implementation
+            specific to that framework instead.
+            </remarks>
+        </member>
+        <member name="P:LaunchDarkly.Logging.Logs.None">
+            <summary>
+            A stub that generates no log output.
+            </summary>
+        </member>
+        <member name="P:LaunchDarkly.Logging.Logs.Default">
+            <summary>
+            A default implementation that writes to the standard error stream at <c>Info</c> level.
+            </summary>
+            <remarks>
+            This simply calls <c>ToConsole</c>, and then uses <see cref="M:LaunchDarkly.Logging.ILogAdapterExtensions.Level(LaunchDarkly.Logging.ILogAdapter,LaunchDarkly.Logging.LogLevel)"/>
+            to set the minimum level to <c>Info</c> (that is, it suppresses <c>Debug</c> logging).
+            </remarks>
+        </member>
+        <member name="P:LaunchDarkly.Logging.Logs.ToConsole">
+            <summary>
+            A simple logging implementation that writes to the standard error stream.
+            </summary>
+            <remarks>
+            <para>
+            This is equivalent to <c>Logs.ToWriter(Console.Error)</c>.
+            </para>
+            <para>
+            By default, all logging is enabled including <c>Debug</c> level. To filter by level, use
+            <see cref="M:LaunchDarkly.Logging.ILogAdapterExtensions.Level(LaunchDarkly.Logging.ILogAdapter,LaunchDarkly.Logging.LogLevel)"/>. You can also use
+            <see cref="T:LaunchDarkly.Logging.SimpleLogging"/> methods for additional configuration.
+            </para>
+            </remarks>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logs.ToWriter(System.IO.TextWriter)">
+            <summary>
+            A simple logging implementation that writes to any <c>TextWriter</c>.
+            </summary>
+            <remarks>
+            <para>
+            This could be a built-in writer such as <c>Console.Out</c>, or a file.
+            </para>
+            <para>
+            By default, all logging is enabled including <c>Debug</c> level. To filter by level, use
+            <see cref="M:LaunchDarkly.Logging.ILogAdapterExtensions.Level(LaunchDarkly.Logging.ILogAdapter,LaunchDarkly.Logging.LogLevel)"/>. You can also use
+            <see cref="T:LaunchDarkly.Logging.SimpleLogging"/> methods for additional configuration.
+            </para>
+            </remarks>
+            <param name="stream">the destination for output</param>
+            <returns>a configurable logging adapter</returns>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logs.ToMethod(System.Action{System.String})">
+            <summary>
+            A simple logging implementation that calls a method or lambda that you specify for
+            each line of output.
+            </summary>
+            <remarks>
+            <para>
+            Each line is preformatted to include the logger name, the log level, and a timestamp
+            (unless you disable timestamps with <see cref="M:LaunchDarkly.Logging.SimpleLogging.DateFormat(System.String)"/>),
+            in the same format used by <see cref="P:LaunchDarkly.Logging.Logs.ToConsole"/>.
+            </para>
+            <para>
+            By default, all logging is enabled including <c>Debug</c> level. To filter by level, use
+            <see cref="M:LaunchDarkly.Logging.ILogAdapterExtensions.Level(LaunchDarkly.Logging.ILogAdapter,LaunchDarkly.Logging.LogLevel)"/>. You can also use
+            <see cref="T:LaunchDarkly.Logging.SimpleLogging"/> methods for additional configuration.
+            </para>
+            </remarks>
+            <example>
+                // A silly example that just writes lines to the console, but with a "HEY!" prefix.
+                var logAdapter = Logs.ToMethod(line =>
+                    {
+                        Console.WriteLine("HEY! " + line);
+                    });
+            </example>
+            <param name="writeLineMethod">a method or lambda that takes a line of text as a
+            parameter</param>
+            <returns>a configurable logging adapter</returns>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logs.CoreLogging(Microsoft.Extensions.Logging.ILoggerFactory)">
+            <summary>
+            A logging implementation that delegates to the .NET Core logging framework.
+            </summary>
+            <remarks>
+            <para>
+            This method is only available when your target framework is .NET Core or .NET 6.0+. It causes
+            the <c>LaunchDarkly.Logging</c> APIs to delegate to the <c>Microsoft.Extensions.Logging</c>
+            framework. The <c>ILoggingFactory</c> is the main configuration object for
+            <c>Microsoft.Extensions.Logging</c>; application code can construct it programmatically,
+            or can obtain it by dependency injection. For more information, see
+            <see href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/logging/?view=aspnetcore-3.1">Logging
+            in .NET Core and ASP.NET Core</see>.
+            </para>
+            <para>
+            If you want to use <c>Microsoft.Extensions.Logging</c> on a different platform, such as
+            .NET Framework or a mobile OS, use the separate package
+            <a href="https://github.com/launchdarkly/dotnet-logging-adapter-ms">LaunchDarkly.Logging.Microsoft</a>.
+            The adapter is not built into <c>LaunchDarkly.Logging</c> on those platforms, to avoid
+            bringing in the <c>Microsoft.Extensions.Logging</c> package as a dependency that may not
+            be wanted.
+            </para>
+            <para>
+            The .NET Core logging framework has its own mechanisms for filtering log output
+            by level or other criteria. If you add a level filter with
+            <see cref="M:LaunchDarkly.Logging.ILogAdapterExtensions.Level(LaunchDarkly.Logging.ILogAdapter,LaunchDarkly.Logging.LogLevel)"/>, it will filter
+            out messages below that level before they reach the .NET Core logger.
+            </para>
+            </remarks>
+            <param name="loggerFactory">the factory object for .NET Core logging</param>
+            <returns>a logging adapter</returns>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logs.ToMultiple(LaunchDarkly.Logging.ILogAdapter[])">
+            <summary>
+            A logging implementation that delegates to any number of destinations.
+            </summary>
+            <example>
+                // Send log output both to Console.Error and a file
+                var fileWriter = new StreamWriter("output.log");
+                var logAdapter = MultiLog.Adapter(
+                    SimpleLog.Adapter, // writes to Console.Error
+            </example>
+            <param name="logAdapters"></param>
+            <returns>an <see cref="T:LaunchDarkly.Logging.ILogAdapter"/></returns>
+        </member>
+        <member name="M:LaunchDarkly.Logging.Logs.Capture">
+            <summary>
+            A logging implementation that captures log messages in memory.
+            </summary>
+            <returns>a <see cref="T:LaunchDarkly.Logging.LogCapture"/> instance</returns>
+        </member>
+        <member name="T:LaunchDarkly.Logging.LogValues">
+            <summary>
+            Helper methods for logging special variables.
+            </summary>
+        </member>
+        <member name="M:LaunchDarkly.Logging.LogValues.Defer(System.Func{System.String})">
+            <summary>
+            Converts any function that returns a string into an object for calling it lazily.
+            </summary>
+            <remarks>
+            Sometimes log messages may include a computed value that has enough computational
+            overhead that you would prefer not to compute it unless it really will be logged.
+            The <see cref="T:LaunchDarkly.Logging.Logger"/> methods that take parameters of type <c>object</c> do not
+            call <c>ToString()</c> to convert those parameters to strings immediately; if logging
+            of this message has been disabled by a <see cref="M:LaunchDarkly.Logging.ILogAdapterExtensions.Level(LaunchDarkly.Logging.ILogAdapter,LaunchDarkly.Logging.LogLevel)"/>
+            filter, or some other filtering mechanism defined by the log adapter, or if all
+            logging is disabled because the destination is <see cref="P:LaunchDarkly.Logging.Logs.None"/>, then
+            <c>ToString()</c> is not called. The object returned by <c>Defer</c> simply delegates
+            its <c>ToString()</c> method to the function you provide.
+            </remarks>
+            <example>
+                // Here, ComputeJSONData is only called if debug-level logging is enabled
+                logger.Debug("The JSON data is: {0}", () => ComputeJSONData());
+            </example>
+            <param name="stringProvider">a function that returns a string</param>
+            <returns>an object that calls that function if <c>ToString()</c> is called</returns>
+        </member>
+        <member name="M:LaunchDarkly.Logging.LogValues.ExceptionSummary(System.Exception)">
+            <summary>
+            Returns an object that lazily constructs a basic exception description.
+            </summary>
+            <remarks>
+            Calling <c>ToString()</c> on the object returned by this method returns a string
+            that includes the name of the exception class, its Message (if any), and the
+            same properties for its InnerException (if any). This string is not constructed
+            unless <c>ToString()</c> is called, so writing exceptions to the log in this way
+            incurs very little overhead if logging is not enabled for the specified log level.
+            </remarks>
+            <example>
+                try { ... }
+                catch (Exception e)
+                {
+                    logger.Debug("Caught: {0} {1}", LogValues.ExceptionSummary(e),
+                        LogValues.ExceptionTrace(e));
+                }
+            </example>
+            <param name="e">an exception</param>
+            <returns>an object whose <c>ToString()</c> method provides a description</returns>
+        </member>
+        <member name="M:LaunchDarkly.Logging.LogValues.ExceptionTrace(System.Exception)">
+            <summary>
+            Returns an object that lazily constructs an exception stacktrace.
+            </summary>
+            <remarks>
+            Calling <c>ToString()</c> on the object returned by this method returns the
+            exception's stacktrace as a string. This string is not constructed unless
+            <c>ToString()</c> is called, so writing exceptions to the log in this way incurs
+            very little overhead if logging is not enabled for the specified log level.
+            </remarks>
+            <example>
+                try { ... }
+                catch (Exception e)
+                {
+                    logger.Debug("Caught: {0} {1}", LogValues.ExceptionSummary(e),
+                        LogValues.ExceptionTrace(e));
+                }
+            </example>
+            <param name="e">an exception</param>
+            <returns>an object whose <c>ToString()</c> method provides a stacktrace</returns>
+        </member>
+        <member name="T:LaunchDarkly.Logging.SimpleLogging">
+            <summary>
+            A basic logging implementation that sends preformatted output one line at a time
+            to a <see cref="T:System.IO.TextWriter"/>, or to any arbitrary output function.
+            </summary>
+            <remarks>
+            This is the configurable adapter that is returned by <see cref="P:LaunchDarkly.Logging.Logs.ToConsole"/>,
+            <see cref="M:LaunchDarkly.Logging.Logs.ToWriter(System.IO.TextWriter)"/>, and <see cref="M:LaunchDarkly.Logging.Logs.ToMethod(System.Action{System.String})"/>.
+            You can specify additional options using the methods of this class, such as
+            <see cref="M:LaunchDarkly.Logging.SimpleLogging.DateFormat(System.String)"/>.
+            </remarks>
+        </member>
+        <member name="F:LaunchDarkly.Logging.SimpleLogging.DefaultDateFormat">
+            <summary>
+            The default format for log timestamps.
+            </summary>
+        </member>
+        <member name="M:LaunchDarkly.Logging.SimpleLogging.DateFormat(System.String)">
+            <summary>
+            Specifies the format for date/timestamps, in the syntax used by <see cref="M:System.DateTime.ToString(System.String)"/>.
+            </summary>
+            <remarks>
+            This method does not modify the current instance, but returns a new adapter based on this one.
+            </remarks>
+            <param name="dateFormat">the date/time format, or null to omit the date and time</param>
+            <returns>an adapter with the specified configuration</returns>
+        </member>
+        <member name="M:LaunchDarkly.Logging.SimpleLogging.NewChannel(System.String)">
+            <summary>
+            Called internally by the logging framework.
+            </summary>
+            <param name="name">the channel name</param>
+            <returns>a new channel</returns>
+        </member>
+    </members>
+</doc>

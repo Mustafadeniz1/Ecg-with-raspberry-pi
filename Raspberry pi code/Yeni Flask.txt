@@ -1,0 +1,124 @@
+import time
+import RPi.GPIO as GPIO  # For GPIO control
+from Adafruit_ADS1x15 import ADS1115
+from flask import Flask, jsonify
+from typing import List
+from threading import Thread
+
+# GPIO Pin Numbers (LO+ and LO-)
+LO_PLUS_PIN = 17  # GPIO17 (Pin 11)
+LO_MINUS_PIN = 27  # GPIO27 (Pin 13)
+
+# GPIO Settings
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(LO_PLUS_PIN, GPIO.IN)
+GPIO.setup(LO_MINUS_PIN, GPIO.IN)
+
+# ADS1115 Configuration
+adc = ADS1115(busnum=1)  # Use I2C bus 1
+GAIN = 4  # Voltage gain (2 = +/- 2.048V, to amplify the signal)
+
+# Sampling and Window Settings
+sampling_rate = 50  # Adjusted Sampling rate (Hz)
+window_size = 10  # Window size for BPM calculation (seconds)
+# Data list (to store collected data)
+data: List[float] = []  # List of floats for storing voltage readings
+peaks: List[int] = []  # List of detected peaks
+#Flask app setup
+app=Flask(__name__)
+
+# Moving Average Filter
+def moving_average(data: List[float], window_size: int) -> List[float]:
+    """Apply a moving average filter."""
+    if len(data) < window_size:
+        return data  # Not enough data points for the moving average
+    return [sum(data[i:i + window_size]) / window_size for i in range(len(data) - window_size + 1)]
+
+# BPM Calculation Function
+def calculate_bpm(ecg_data: List[float], fs: int) -> float:
+    """Find R peaks and calculate BPM."""
+    global peaks
+    peaks = []  # List of indices of R peaks
+    threshold = max(ecg_data) * 0.5  # Adjusted threshold for better peak detection
+    min_distance = int(fs * 0.6)  # Minimum distance between peaks (~600 ms)
+    # Detect R peak
+    for i in range(1, len(ecg_data) - 1):
+        if ecg_data[i] > threshold and ecg_data[i] > ecg_data[i - 1] and ecg_data[i] > ecg_data[i + 1]:
+            # Ensure peaks are spaced apart by min_distance
+            if not peaks or (i - peaks[-1]) >= min_distance:
+                peaks.append(i)
+    # Calculate R-R intervals (in seconds)
+    rr_intervals = [(peaks[i] - peaks[i - 1]) / fs for i in range(1, len(peaks))]
+
+    # Calculate BPM
+    if len(rr_intervals) > 0:
+        avg_rr_interval = sum(rr_intervals) / len(rr_intervals)
+        bpm = 60 / avg_rr_interval
+    else:
+
+      bpm = 0
+
+    return bpm
+
+# Endpoint to get the current BPM and ECG signal
+@app.route('/bpm', methods=['GET'])
+def get_bpm():
+    global data, peaks
+    #Normalize the ecg signal better visualization 
+    max_signal = max(data) if data else 1
+    normalized_signal=[(v/max_signal)*200  for v in data]
+    # Apply the moving average filter
+    filtered_signal = moving_average(normalized_signal, 5)  # 5-point moving average
+    # Calculate BPM periodically
+    bpm=calculate_bpm(filtered_signal, sampling_rate)
+    #TÄ±me delay 
+    time.sleep(2)
+    # Return the ECG signal, peaks, and BPM as JSON
+    return jsonify({'bpm': bpm, 'signal': normalized_signal, 'peaks': peaks})
+
+#Main data collection loop
+ 
+def data_collection_loop():
+    global data,peaks
+    last_send_time = time.time()  # Track the last time data was sent to Flask
+    send_interval = 0.4  # Send data to Flask every 2 seconds
+    try:
+        print("Reading data from AD8232. Calculating BPM...")
+        while True:
+            #Check electrode connections
+            if GPIO.input(LO_PLUS_PIN) == GPIO.HIGH or GPIO.input(LO_MINUS_PIN) == GPIO.HIGH:
+             print("Electrodes dont connect ")
+             time.sleep(1)   # wait execution
+             continue #Skip data and check again  
+            # Read data from ADS1115 and convert to voltage
+            raw_value = adc.read_adc(0, gain=GAIN)
+            voltage = (raw_value / 32768.0) * 4.096  # Convert digital value to voltage
+
+            # Append the voltage to the data list
+            data.append(voltage)
+
+            # Limit data size (e.g., last 10 seconds of data)
+            if len(data) > window_size * sampling_rate:
+                data = data[-window_size * sampling_rate:]
+            #Send data to Flask every 2 seconds
+            if time.time() - last_send_time >= send_interval:
+               last_send_time = time.time()
+
+            # Control sampling rate
+            time.sleep(1 / sampling_rate)  # Adjusted sampling rate (200 Hz)
+
+    except KeyboardInterrupt:
+        print("Program terminated.")
+    finally:
+        GPIO.cleanup()  # Clean up GPIO pins
+
+if __name__=="__main__":
+
+   #Run flask spereate time
+
+    flask_thread = Thread(target=lambda: app.run(host='0.0.0.0', port=5000, debug=False))
+    flask_thread.start()
+
+    # Start data collection loop
+    data_collection_loop()
+

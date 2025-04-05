@@ -1,0 +1,277 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>LaunchDarkly.Cache</name>
+    </assembly>
+    <members>
+        <member name="T:LaunchDarkly.Cache.CacheImpl`2">
+             <summary>
+             A concurrent in-memory cache with optional read-through behavior, an optional TTL, and the
+             ability to explicitly set values. Expired entries are purged by a background task.
+             
+             A cache hit, or a miss without read-through, requires only one read lock. A cache miss
+             with read-through requires read and write locks on the cache, and then a write lock on the
+             individual entry.
+             
+             Loading requests are coalesced, i.e. if multiple threads request the same key at the same
+             time, only one will call the loader function and the others will wait on it.
+            
+             Null values are allowed.
+             </summary>
+        </member>
+        <member name="T:LaunchDarkly.Cache.Caches">
+            <summary>
+            Methods for building caches.
+            </summary>
+        </member>
+        <member name="M:LaunchDarkly.Cache.Caches.KeyValue``2">
+            <summary>
+            Starts constructing a key-value cache.
+            </summary>
+            <typeparam name="K">the key type</typeparam>
+            <typeparam name="V">the value type</typeparam>
+            <returns>a builder</returns>
+        </member>
+        <member name="M:LaunchDarkly.Cache.Caches.SingleValue``1">
+            <summary>
+            Starts constructing a cache that contains only a single value, with no key.
+            </summary>
+            <typeparam name="V">the value type</typeparam>
+            <returns>a builder</returns>
+        </member>
+        <member name="T:LaunchDarkly.Cache.CacheBuilderBase`1">
+            <summary>
+            Basic builder methods common to all caches.
+            </summary>
+            <typeparam name="B">the specific builder subclass</typeparam>
+        </member>
+        <member name="M:LaunchDarkly.Cache.CacheBuilderBase`1.WithExpiration(System.Nullable{System.TimeSpan})">
+            <summary>
+            Sets the maximum time (TTL) that any value will be retained in the cache. This time is
+            counted from the time when the value was last written (added or updated).
+            
+            If this is null, values will never expire.
+            </summary>
+            <param name="expiration">the expiration time, or null if values should never expire</param>
+            <returns></returns>
+        </member>
+        <member name="M:LaunchDarkly.Cache.CacheBuilderBase`1.WithBackgroundPurge(System.Nullable{System.TimeSpan})">
+            <summary>
+            Sets the interval in between automatic purges of expired values.
+            
+            If this is not null, then a background task will run at that frequency to sweep the cache for
+            all expired values.
+            
+            If it is null, expired values will be removed only at the time when you try to access them.
+            
+            This value is ignored if the expiration time (<see cref="M:LaunchDarkly.Cache.CacheBuilderBase`1.WithExpiration(System.Nullable{System.TimeSpan})"/>) is null.
+            </summary>
+            <param name="purgeInterval">the purge interval, or null to turn off automatic purging</param>
+            <returns></returns>
+        </member>
+        <member name="T:LaunchDarkly.Cache.CacheBuilder`2">
+            <summary>
+            Builder for a key-value cache.
+            </summary>
+            <typeparam name="K">the key type</typeparam>
+            <typeparam name="V">the value type</typeparam>
+            <see cref="M:LaunchDarkly.Cache.Caches.KeyValue``2"/>
+        </member>
+        <member name="M:LaunchDarkly.Cache.CacheBuilder`2.WithLoader(System.Func{`0,`1})">
+            <summary>
+            Specifies a value computation function for a read-through cache.
+            
+            If this is not null, then any call to <see cref="M:LaunchDarkly.Cache.ICache`2.Get(`0)"/> or
+            <see cref="M:LaunchDarkly.Cache.ICache`2.TryGetValue(`0,`1@)"/> with a key that is not already in the
+            cache will cause the function to be called with that key as an argument; the returned
+            value will then be stored in the cache and returned to the caller.
+            
+            If the function is null (the default), then the cache will not be a read-through cache
+            and will only provide values that were explicitly set.
+            </summary>
+            <param name="loaderFn">the function for generating values</param>
+            <returns>the builder</returns>
+        </member>
+        <member name="M:LaunchDarkly.Cache.CacheBuilder`2.WithInitialCapacity(System.Nullable{System.Int32})">
+            <summary>
+            Specifies the initial capacity of the cache.
+            
+            This is the same as the optional constructor parameter for <code>Dictionary</code>.
+            It does not affect how many entries can be stored, only how soon the backing
+            dictionary will need to be resized.
+            </summary>
+            <param name="initialCapacity">the initial capacity, or null to use the default</param>
+            <returns>the builder</returns>
+        </member>
+        <member name="M:LaunchDarkly.Cache.CacheBuilder`2.WithMaximumEntries(System.Nullable{System.Int32})">
+            <summary>
+            Specifies the maximum number of entries that can be in the cache.
+            
+            If this is not null, then any attempt to add more entries when the cache has reached
+            this limit will result in existing entries being evicted, in the order that they were
+            originally added or last updated.
+            
+            If it is null (the default), then there is no such limit.
+            </summary>
+            <param name="maximumEntries">the maximum capacity, or null for no limit</param>
+            <returns>the builder</returns>
+        </member>
+        <member name="M:LaunchDarkly.Cache.CacheBuilder`2.Build">
+            <summary>
+            Constructs a cache with the specified properties.
+            </summary>
+            <returns>a cache instance</returns>
+        </member>
+        <member name="T:LaunchDarkly.Cache.SingleValueCacheBuilder`1">
+            <summary>
+            Builder for a single-value cache.
+            </summary>
+            <typeparam name="V">the value type</typeparam>
+        </member>
+        <member name="M:LaunchDarkly.Cache.SingleValueCacheBuilder`1.WithLoader(System.Func{`0})">
+            <summary>
+            Specifies a value computation function for a read-through cache.
+            
+            If this is not null, then any call to <see cref="M:LaunchDarkly.Cache.ISingleValueCache`1.Get"/> or
+            <see cref="M:LaunchDarkly.Cache.ISingleValueCache`1.TryGetValue(`0@)"/> with a key that is not already in the
+            cache will cause the function to be called; the returned value will then be stored in
+            the cache and returned to the caller.
+            
+            If the function is null (the default), then the cache will not be a read-through cache
+            and will only provide values that were explicitly set.
+            </summary>
+            <param name="loaderFn">the function for generating values</param>
+            <returns>the builder</returns>
+        </member>
+        <member name="M:LaunchDarkly.Cache.SingleValueCacheBuilder`1.Build">
+            <summary>
+            Constructs a cache with the specified properties.
+            </summary>
+            <returns>a cache instance</returns>
+        </member>
+        <member name="T:LaunchDarkly.Cache.ICache`2">
+            <summary>
+            Interface for a key-value cache.
+            </summary>
+            <typeparam name="K">the key type</typeparam>
+            <typeparam name="V">the value type</typeparam>
+        </member>
+        <member name="M:LaunchDarkly.Cache.ICache`2.ContainsKey(`0)">
+            <summary>
+            Returns true if the cache can provide a value for the given key.
+            
+            In a read-through cache, this method will always return true, since calling
+            <see cref="M:LaunchDarkly.Cache.ICache`2.Get(`0)"/> will always call the loader function to acquire a value if the
+            value was not already cached.
+            </summary>
+            <param name="key">the key</param>
+            <returns>true if the key has an associated value</returns>
+        </member>
+        <member name="M:LaunchDarkly.Cache.ICache`2.Get(`0)">
+            <summary>
+            Attempts to get the value associated with the given key.
+            
+            In a read-through cache, if there is no cached value for the key, the cache will call
+            the loader function to provide a value; thus, a value is always available.
+            
+            If it is not a read-through cache and no value is available, the cache does not throw
+            an exception (unlike IDictionary). Instead, it returns the default value for type V
+            (null, if it is a reference type). Note that any value (including null, for reference
+            types) can be cached, so if you need to distinguish between the lack of a value and a
+            default value you must use <see cref="M:LaunchDarkly.Cache.ICache`2.ContainsKey(`0)"/> or <see cref="M:LaunchDarkly.Cache.ICache`2.TryGetValue(`0,`1@)"/>.
+            </summary>
+            <param name="key">the key</param>
+            <returns>the associated value, or <code>default(V)</code></returns>
+        </member>
+        <member name="M:LaunchDarkly.Cache.ICache`2.TryGetValue(`0,`1@)">
+             <summary>
+             Attempts to get the value associated with the given key. If successful, sets
+             <code>value</code> to the value and returns true; otherwise, sets <code>value</code>
+             to <code>default(V)</code> and returns false.
+             
+             In a read-through cache, if there is no cached value for the key, the cache will call
+             the loader function to provide a value; thus, it will always return true.
+            
+             This is the same as calling <see cref="M:LaunchDarkly.Cache.ICache`2.ContainsKey(`0)"/> followed by <see cref="M:LaunchDarkly.Cache.ICache`2.Get(`0)"/>
+             except that it is an atomic operation.
+             </summary>
+             <param name="key">the key</param>
+             <returns>true if there is a value</returns>
+        </member>
+        <member name="M:LaunchDarkly.Cache.ICache`2.Set(`0,`1)">
+            <summary>
+            Stores a value associated with the given key.
+            
+            Note that any value of type V can be cached, including null for reference types.
+            </summary>
+            <param name="key">the key</param>
+            <param name="value">the value</param>
+        </member>
+        <member name="M:LaunchDarkly.Cache.ICache`2.Remove(`0)">
+            <summary>
+            Removes the value associated with the given key, if any.
+            </summary>
+            <param name="key">the key</param>
+        </member>
+        <member name="M:LaunchDarkly.Cache.ICache`2.Clear">
+            <summary>
+            Removes all cached values.
+            </summary>
+        </member>
+        <member name="T:LaunchDarkly.Cache.ISingleValueCache`1">
+            <summary>
+            Interface for a cache that holds a single value, with no key.
+            </summary>
+            <typeparam name="V">the value type</typeparam>
+        </member>
+        <member name="P:LaunchDarkly.Cache.ISingleValueCache`1.HasValue">
+            <summary>
+            Returns true if the cache contains a value.
+            
+            In a read-through cache, this property will always be true, since calling
+            <see cref="M:LaunchDarkly.Cache.ISingleValueCache`1.Get"/> will always call the loader function to acquire a value if the
+            value was not already cached.
+            </summary>
+            <returns>true if there is a value</returns>
+        </member>
+        <member name="M:LaunchDarkly.Cache.ISingleValueCache`1.Get">
+             <summary>
+             Attempts to get the current value.
+             
+             In a read-through cache, if there is no cached value for, the cache will call the loader
+             function to provide a value; thus, a value is always available.
+            
+             If no value is available, the cache does not throw an exception. Instead, it returns the
+             default value for type V (i.e. null if it is a reference type). Note that any value
+             (including null, for reference types) can be cached, so if you need to distinguish
+             between the lack of a value and a default value you must use
+             <see cref="P:LaunchDarkly.Cache.ISingleValueCache`1.HasValue"/> or <see cref="M:LaunchDarkly.Cache.ISingleValueCache`1.TryGetValue(`0@)"/>.
+             </summary>
+             <returns>the current value, or <code>default(V)</code></returns>
+        </member>
+        <member name="M:LaunchDarkly.Cache.ISingleValueCache`1.TryGetValue(`0@)">
+            <summary>
+            Attempts to get the current value. If successful, sets <code>value</code> to the value
+            and returns true; otherwise, sets <code>value</code> to <code>default(V)</code> and
+            returns false.
+            
+            This is the same as calling <see cref="P:LaunchDarkly.Cache.ISingleValueCache`1.HasValue"/> followed by <see cref="M:LaunchDarkly.Cache.ISingleValueCache`1.Get"/>
+            except that it is an atomic operation.
+            </summary>
+            <returns>the current value, or <code>default(V)</code></returns>
+        </member>
+        <member name="M:LaunchDarkly.Cache.ISingleValueCache`1.Set(`0)">
+            <summary>
+            Stores a value.
+            
+            Note that any value of type V can be cached, including null for reference types.
+            </summary>
+            <param name="value">the value</param>
+        </member>
+        <member name="M:LaunchDarkly.Cache.ISingleValueCache`1.Clear">
+            <summary>
+            Removes the cached value, if any.
+            </summary>
+        </member>
+    </members>
+</doc>

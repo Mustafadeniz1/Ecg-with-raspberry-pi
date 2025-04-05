@@ -1,0 +1,1175 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>LaunchDarkly.EventSource</name>
+    </assembly>
+    <members>
+        <member name="M:LaunchDarkly.EventSource.AsyncHelpers.SuppressExceptions(System.Threading.Tasks.Task)">
+            <summary>
+            Adds a continuation to a task so that if the task throws an uncaught exception, the exception
+            is not "unobserved" (which can be a fatal error in some versions of .NET). We must do this
+            whenever we're going to discard a task without awaiting it, if there's any possibility that
+            it could throw an exception.
+            </summary>
+            <param name="task">a task we are not going to await</param>
+        </member>
+        <member name="T:LaunchDarkly.EventSource.ByteArrayLineScanner">
+            <summary>
+            Internal implementation of a buffered text line parser for UTF-8 data.
+            </summary>
+            <remarks>
+            <para>
+            This is used as follows. 1. The caller puts some data into the byte buffer. 2. The caller
+            calls ScanToEndOfLine; if it returns true, the <c>lineOut</c> parameter is set to point
+            to the content of the line (not including the line ending character(s)). If it returns
+            false, put more data into the buffer and try again.
+            </para>
+            <para>
+            Since in UTF-8 all multi-byte characters use values greater than 127 for all of their
+            bytes, this logic doesn't need to do any UTF-8 decoding or even know how many bytes are
+            in a character; it just looks for the line-ending sequences CR, LF, or CR+LF.
+            </para>
+            </remarks>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ByteArrayLineScanner.AddedBytes(System.Int32)">
+            <summary>
+            The caller calls this method after having already added <c>count</c> more bytes at the
+            end of the buffer. We do it this way instead of having an <c>AddBytes(byte[], int)</c>
+            method because we don't want to allocate a second buffer just to be the destination for
+            a read operation.
+            </summary>
+            <param name="count">number of bytes added</param>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ByteArrayLineScanner.ScanToEndOfLine(LaunchDarkly.EventSource.Utf8ByteSpan@)">
+            <summary>
+            Searches for the next line ending and, if successful, provides the line data.
+            </summary>
+            <param name="lineOut">if successful, this is set to point to the bytes for the line
+            <i>not</i> including any CR/LF; whenever possible this is a reference to the underlying
+            buffer, not a copy, so the caller should read/copy it before doing anything else to the
+            buffer</param>
+            <returns>true if a full line was read, false if we need more data first</returns>
+        </member>
+        <member name="T:LaunchDarkly.EventSource.CommentReceivedEventArgs">
+            <summary>
+            Provides data recieved in the EventSource <see cref="E:LaunchDarkly.EventSource.EventSource.CommentReceived"/> event. 
+            </summary>
+            <seealso cref="T:System.EventArgs" />
+        </member>
+        <member name="P:LaunchDarkly.EventSource.CommentReceivedEventArgs.Comment">
+            <summary>
+            Gets the comment received in the Server Sent Event.
+            </summary>
+            <value>
+            The comment.
+            </value>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.CommentReceivedEventArgs.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:LaunchDarkly.EventSource.CommentReceivedEventArgs"/> class.
+            </summary>
+            <param name="comment">The comment received in the Server Sent Event.</param>
+        </member>
+        <member name="T:LaunchDarkly.EventSource.Configuration">
+            <summary>
+            An immutable class containing configuration properties for <see cref="T:LaunchDarkly.EventSource.EventSource"/>.
+            </summary>
+            <seealso cref="M:LaunchDarkly.EventSource.EventSource.#ctor(LaunchDarkly.EventSource.Configuration)"/>
+            <seealso cref="T:LaunchDarkly.EventSource.ConfigurationBuilder"/>
+        </member>
+        <member name="F:LaunchDarkly.EventSource.Configuration.DefaultInitialRetryDelay">
+            <summary>
+            The default value for <see cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.InitialRetryDelay(System.TimeSpan)"/>:
+            one second.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.EventSource.Configuration.DefaultMaxRetryDelay">
+            <summary>
+            The default value for <see cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.MaxRetryDelay(System.TimeSpan)"/>:
+            30 seconds.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.EventSource.Configuration.DefaultResponseStartTimeout">
+            <summary>
+            The default value for <see cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.ResponseStartTimeout(System.TimeSpan)"/>:
+            10 seconds.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.EventSource.Configuration.DefaultConnectionTimeout">
+            <summary>
+            Obsolete name for <see cref="F:LaunchDarkly.EventSource.Configuration.DefaultResponseStartTimeout"/>.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.EventSource.Configuration.DefaultReadTimeout">
+            <summary>
+            The default value for <see cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.ReadTimeout(System.TimeSpan)"/>:
+            5 minutes.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.EventSource.Configuration.DefaultBackoffResetThreshold">
+            <summary>
+            The default value for <see cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.BackoffResetThreshold(System.TimeSpan)"/>:
+            one minute.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.EventSource.Configuration.DefaultLoggerName">
+            <summary>
+            The logger name that will be used if you specified a logging implementation but did not
+            provide a specific logger instance.
+            </summary>
+            <seealso cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.LogAdapter(LaunchDarkly.Logging.ILogAdapter)"/>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Configuration.BackoffResetThreshold">
+            <summary>
+            The amount of time a connection must stay open before the EventSource resets its backoff delay.
+            </summary>
+            <seealso cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.BackoffResetThreshold(System.TimeSpan)"/>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Configuration.ConnectionTimeout">
+            <summary>
+            Obsolete name for <see cref="P:LaunchDarkly.EventSource.Configuration.ResponseStartTimeout"/>.
+            </summary>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Configuration.HttpClient">
+            <summary>
+            The HttpClient that will be used as the HTTP client, or null for a new HttpClient.
+            </summary>
+            <seealso cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.HttpClient(System.Net.Http.HttpClient)"/>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Configuration.HttpMessageHandler">
+            <summary>
+            The HttpMessageHandler that will be used for the HTTP client, or null for the default handler.
+            </summary>
+            <seealso cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.HttpMessageHandler(System.Net.Http.HttpMessageHandler)"/>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Configuration.HttpRequestModifier">
+            <summary>
+            Delegate hook invoked before an HTTP request has been performed.
+            </summary>
+            <seealso cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.HttpRequestModifier(System.Action{System.Net.Http.HttpRequestMessage})"/>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Configuration.InitialRetryDelay">
+            <summary>
+            The initial amount of time to wait before attempting to reconnect to the EventSource API.
+            </summary>
+            <seealso cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.InitialRetryDelay(System.TimeSpan)"/>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Configuration.LastEventId">
+            <summary>
+            Gets the last event identifier.
+            </summary>
+            <seealso cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.LastEventId(System.String)"/>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Configuration.Logger">
+            <summary>
+            The logger to be used for all EventSource log output.
+            </summary>
+            <remarks>
+            This is never null; if logging is not configured, it will be <c>LaunchDarkly.Logging.Logs.None</c>.
+            </remarks>
+            <seealso cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.Logger(LaunchDarkly.Logging.Logger)"/>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Configuration.MaxRetryDelay">
+            <summary>
+            The maximum amount of time to wait before attempting to reconnect.
+            </summary>
+            <seealso cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.MaxRetryDelay(System.TimeSpan)"/>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Configuration.Method">
+            <summary>
+            The HTTP method that will be used when connecting to the EventSource API.
+            </summary>
+            <seealso cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.Method(System.Net.Http.HttpMethod)"/>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Configuration.PreferDataAsUtf8Bytes">
+            <summary>
+            Whether to use UTF-8 byte arrays internally if possible when reading the stream.
+            </summary>
+            <seealso cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.PreferDataAsUtf8Bytes(System.Boolean)"/>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Configuration.ReadTimeout">
+            <summary>
+            The timeout when reading from the EventSource API.
+            </summary>
+            <seealso cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.ReadTimeout(System.TimeSpan)"/>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Configuration.RequestBodyFactory">
+            <summary>
+            A factory for HTTP request body content, if the HTTP method is one that allows a request body.
+            is one that allows a request body. This is in the form of a factory function because the request
+            may need to be sent more than once.
+            </summary>
+            <seealso cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.RequestBodyFactory(System.Func{System.Net.Http.HttpContent})"/>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Configuration.RequestHeaders">
+            <summary>
+            The request headers to be sent with each EventSource HTTP request.
+            </summary>
+            <seealso cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.RequestHeader(System.String,System.String)"/>
+            <seealso cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.RequestHeaders(System.Collections.Generic.IDictionary{System.String,System.String})"/>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Configuration.ResponseStartTimeout">
+            <summary>
+            The maximum amount of time to wait between starting an HTTP request and receiving the response
+            headers.
+            </summary>
+            <seealso cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.ResponseStartTimeout(System.TimeSpan)"/>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Configuration.Uri">
+            <summary>
+            Gets the <see cref="T:System.Uri"/> used when connecting to an EventSource API.
+            </summary>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.Configuration.Builder(System.Uri)">
+            <summary>
+            Provides a new <see cref="T:LaunchDarkly.EventSource.ConfigurationBuilder"/> for constructing a configuration.
+            </summary>
+            <param name="uri">the EventSource URI</param>
+            <returns>a new builder instance</returns>
+            <exception cref="T:System.ArgumentNullException">if the URI is null</exception>
+        </member>
+        <member name="T:LaunchDarkly.EventSource.ConfigurationBuilder">
+            <summary>
+            A standard Builder pattern for constructing a <see cref="T:LaunchDarkly.EventSource.Configuration"/> instance.
+            </summary>
+            <remarks>
+            <para>
+            Initialize a builder by calling <c>new ConfigurationBuilder(uri)</c> or
+            <c>Configuration.Builder(uri)</c>. The URI is always required; all other properties
+            are set to defaults. Use the builder's setter methods to modify any desired properties;
+            setter methods can be chained. Then call <c>Build()</c> to construct the final immutable
+            <c>Configuration</c>.
+            </para>
+            <para>
+            All setter methods will throw <c>ArgumentException</c> if called with an invalid value,
+            so it is never possible for <c>Build()</c> to fail.
+            </para>
+            </remarks>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ConfigurationBuilder.Build">
+            <summary>
+            Constructs a <see cref="T:LaunchDarkly.EventSource.Configuration"/> instance based on the current builder properies.
+            </summary>
+            <returns>the configuration</returns>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ConfigurationBuilder.ConnectionTimeout(System.TimeSpan)">
+            <summary>
+            Obsolete name for <see cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.ResponseStartTimeout(System.TimeSpan)"/>.
+            </summary>
+            <param name="responseStartTimeout">the timeout</param>
+            <returns>the builder</returns>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ConfigurationBuilder.HttpRequestModifier(System.Action{System.Net.Http.HttpRequestMessage})">
+            <summary>
+            Sets a delegate hook invoked before an HTTP request is performed. This may be useful if you
+            want to modify some properties of the request that EventSource doesn't already have an option for.
+            </summary>
+            <param name="httpRequestModifier">code that will be called with the request before it is sent</param>
+            <returns>the builder</returns>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ConfigurationBuilder.InitialRetryDelay(System.TimeSpan)">
+            <summary>
+            Sets the initial amount of time to wait before attempting to reconnect to the EventSource API.
+            </summary>
+            <remarks>
+            <para>
+            If the connection fails more than once, the retry delay will increase from this value using
+            a backoff algorithm.
+            </para>
+            <para>
+            The default value is <see cref="F:LaunchDarkly.EventSource.Configuration.DefaultInitialRetryDelay"/>. Negative values
+            are changed to zero.
+            </para>
+            <para>
+            The actual duration of each delay will vary slightly because there is a random jitter
+            factor to avoid clients all reconnecting at once.
+            </para>
+            </remarks>
+            <param name="initialRetryDelay">the initial retry delay</param>
+            <returns>the builder</returns>
+            <seealso cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.MaxRetryDelay(System.TimeSpan)"/>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ConfigurationBuilder.MaxRetryDelay(System.TimeSpan)">
+            <summary>
+            Sets the maximum amount of time to wait before attempting to reconnect.
+            </summary>
+            <remarks>
+            <para>
+            <c>EventSource</c> uses an exponential backoff algorithm (with random jitter) so that
+            the delay between reconnections starts at <see cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.InitialRetryDelay(System.TimeSpan)"/> but
+            increases with each subsequent attempt. <c>MaxRetryDelay</c> sets a limit on how long
+            the delay can be.
+            </para>
+            <para>
+            The default value is <see cref="F:LaunchDarkly.EventSource.Configuration.DefaultMaxRetryDelay"/>. Negative values
+            are changed to zero.
+            </para>
+            </remarks>
+            <param name="maxRetryDelay">the maximum retry delay</param>
+            <returns>the builder</returns>
+            <seealso cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.InitialRetryDelay(System.TimeSpan)"/>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ConfigurationBuilder.BackoffResetThreshold(System.TimeSpan)">
+            <summary>
+            Sets the amount of time a connection must stay open before the EventSource resets its backoff delay.
+            </summary>
+            <remarks>
+            <para>
+            If a connection fails before the threshold has elapsed, the delay before reconnecting will be greater
+            than the last delay; if it fails after the threshold, the delay will start over at the initial minimum
+            value. This prevents long delays from occurring on connections that are only rarely restarted.
+            </para>
+            <para>
+            The default value is <see cref="F:LaunchDarkly.EventSource.Configuration.DefaultBackoffResetThreshold"/>. Negative
+            values are changed to zero.
+            </para>
+            </remarks>
+            <param name="backoffResetThreshold">the threshold time</param>
+            <returns>the builder</returns>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ConfigurationBuilder.ResponseStartTimeout(System.TimeSpan)">
+            <summary>
+            Sets the maximum amount of time EventSource will wait between starting an HTTP request and
+            receiving the response headers.
+            </summary>
+            <remarks>
+            <para>
+            This is the same as the <c>Timeout</c> property in .NET's <c>HttpClient</c>. The default value is
+            <see cref="F:LaunchDarkly.EventSource.Configuration.DefaultConnectionTimeout"/>.
+            </para>
+            <para>
+            It is <i>not</i> the same as a TCP connection timeout. A connection timeout would include only the
+            time of establishing the connection, not the time it takes for the server to prepare the beginning
+            of the response. .NET does not consistently support a connection timeout, but if you are using .NET
+            Core or .NET 5+ you can implement it by using <c>SocketsHttpHandler</c> as your
+            <see cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.HttpMessageHandler(System.Net.Http.HttpMessageHandler)"/> and setting the
+            <c>ConnectTimeout</c> property there.
+            </para>
+            </remarks>
+            <param name="responseStartTimeout">the timeout</param>
+            <returns></returns>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ConfigurationBuilder.ReadTimeout(System.TimeSpan)">
+            <summary>
+            Sets the timeout when reading from the EventSource API.
+            </summary>
+            <remarks>
+            <para>
+            The connection will be automatically dropped and restarted if the server sends no data within
+            this interval. This prevents keeping a stale connection that may no longer be working. It is common
+            for SSE servers to send a simple comment line (":") as a heartbeat to prevent timeouts.
+            </para>
+            <para>
+            The default value is <see cref="F:LaunchDarkly.EventSource.Configuration.DefaultReadTimeout"/>.
+            </para>
+            </remarks>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ConfigurationBuilder.LastEventId(System.String)">
+            <summary>
+            Sets the last event identifier.
+            </summary>
+            <remarks>
+            Setting this value will cause EventSource to add a "Last-Event-ID" header in its HTTP request.
+            This normally corresponds to the <see cref="P:LaunchDarkly.EventSource.MessageEvent.LastEventId"/> field of a previously
+            received event.
+            </remarks>
+            <param name="lastEventId">the event identifier</param>
+            <returns>the builder</returns>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ConfigurationBuilder.LogAdapter(LaunchDarkly.Logging.ILogAdapter)">
+            <summary>
+            Sets the logging implementation to be used for all EventSource log output.
+            </summary>
+            <remarks>
+            <para>
+            This uses the <c>ILogAdapter</c> abstraction from the <c>LaunchDarkly.Logging</c> library,
+            which provides several basic implementations such as <c>Logs.ToConsole</c> and an integration
+            with the .NET Core logging framework. For more about this and about adapters to other logging
+            frameworks, see <a href="https://github.com/launchdarkly/dotnet-logging"><c>LaunchDarkly.Logging</c></a>.
+            </para>
+            <para>
+            <c>LaunchDarkly.Logging</c> defines logging levels of Debug, Info, Warn, and Error. If you do not
+            want detailed Debug-level logging, use the <c>Level()</c> modifier to set a minimum level of Info
+            or above, as shown in the code example (unless you are using an adapter to another logging
+            framework that has its own way of doing log filtering).
+            </para>
+            <para>
+            Log messages will use <see cref="F:LaunchDarkly.EventSource.Configuration.DefaultLoggerName"/> as the logger name. If you
+            want to specify a different logger name, use <see cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.Logger(LaunchDarkly.Logging.Logger)"/>.
+            </para>
+            <para>
+            If you don't specify <see cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.LogAdapter(LaunchDarkly.Logging.ILogAdapter)"/> or <see cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.Logger(LaunchDarkly.Logging.Logger)"/>,
+            EventSource will not do any logging.
+            </para>
+            </remarks>
+            <example>
+                using LaunchDarkly.Logging;
+                
+                // Send log output to the console (standard error), suppressing Debug messages
+                var config = new ConfigurationBuilder(uri).
+                    LogAdapter(Logs.ToConsole.Level(LogLevel.Info)).
+                    Build();
+            </example>
+            <param name="logAdapter">a <c>LaunchDarkly.Logging.ILogAdapter</c></param>
+            <returns>the builder</returns>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ConfigurationBuilder.Logger(LaunchDarkly.Logging.Logger)">
+            <summary>
+            Sets a custom logger to be used for all EventSource log output.
+            </summary>
+            <remarks>
+            <para>
+            This uses the <c>Logger</c> type from the <c>LaunchDarkly.Logging</c> library,
+            which provides several basic implementations such as <c>Logs.ToConsole</c> and an integration
+            with the .NET Core logging framework. For more about this and about adapters to other logging
+            frameworks, see <a href="https://github.com/launchdarkly/dotnet-logging"><c>LaunchDarkly.Logging</c></a>.
+            </para>
+            <para>
+            If you don't specify <see cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.LogAdapter(LaunchDarkly.Logging.ILogAdapter)"/> or <see cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.Logger(LaunchDarkly.Logging.Logger)"/>,
+            EventSource will not do any logging.
+            </para>
+            </remarks>
+            <example>
+                using LaunchDarkly.Logging;
+                
+                // Define a logger that sends output to the console (standard output), suppressing
+                // Debug messages, and using a logger name of "EventStream"
+                var logger = Logs.ToConsole.Level(LogLevel.Info).Logger("EventStream");
+                var config = new ConfigurationBuilder(uri).
+                    Logger(logger).
+                    Build();
+            </example>
+            <param name="logger">a <c>LaunchDarkly.Logging.Logger</c> instance</param>
+            <returns>the builder</returns>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ConfigurationBuilder.PreferDataAsUtf8Bytes(System.Boolean)">
+            <summary>
+            Specifies whether to use UTF-8 byte arrays internally if possible when
+            reading the stream.
+            </summary>
+            <remarks>
+            As described in <see cref="T:LaunchDarkly.EventSource.MessageEvent"/>, in some applications it may be
+            preferable to store and process event data as UTF-8 byte arrays rather than
+            strings. By default, <c>EventSource</c> will use the <c>string</c> type when
+            processing the event stream; if you then use <see cref="P:LaunchDarkly.EventSource.MessageEvent.DataUtf8Bytes"/>
+            to get the data, it will be converted to a byte array as needed. However, if
+            you set <c>PreferDataAsUtf8Bytes</c> to <see langword="true"/>, the event data
+            will be stored internally as a UTF-8 byte array so that if you read
+            <see cref="P:LaunchDarkly.EventSource.MessageEvent.DataUtf8Bytes"/>, you will get the same array with no
+            extra copying or conversion. Therefore, for greatest efficiency you should set
+            this to <see langword="true"/> if you intend to process the data as UTF-8. Note
+            that Server-Sent Event streams always use UTF-8 encoding, as required by the
+            SSE specification.
+            </remarks>
+            <param name="preferDataAsUtf8Bytes">true if you intend to request the event
+            data as UTF-8 bytes</param>
+            <returns>the builder</returns>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ConfigurationBuilder.RequestHeaders(System.Collections.Generic.IDictionary{System.String,System.String})">
+            <summary>
+            Sets the request headers to be sent with each EventSource HTTP request.
+            </summary>
+            <param name="headers">the headers (null is equivalent to an empty dictionary)</param>
+            <returns>the builder</returns>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ConfigurationBuilder.RequestHeader(System.String,System.String)">
+            <summary>
+            Adds a request header to be sent with each EventSource HTTP request.
+            </summary>
+            <param name="name">the header name</param>
+            <param name="value">the header value </param>
+            <returns>the builder</returns>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ConfigurationBuilder.HttpMessageHandler(System.Net.Http.HttpMessageHandler)">
+            <summary>
+            Sets the <c>HttpMessageHandler</c> that will be used for the HTTP client, or null for the default handler.
+            </summary>
+            <remarks>
+            If you have specified a custom HTTP client instance with <see cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.HttpClient(System.Net.Http.HttpClient)"/>, then
+            <see cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.HttpMessageHandler(System.Net.Http.HttpMessageHandler)"/> is ignored.
+            </remarks>
+            <param name="handler">the message handler implementation</param>
+            <returns>the builder</returns>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ConfigurationBuilder.HttpClient(System.Net.Http.HttpClient)">
+            <summary>
+            Specifies that EventSource should use a specific HttpClient instance for HTTP requests.
+            </summary>
+            <remarks>
+            <para>
+            Normally, EventSource creates its own HttpClient and disposes of it when you dispose of the
+            EventSource. If you provide your own HttpClient using this method, you are responsible for
+            managing the HttpClient's lifecycle-- EventSource will not dispose of it.
+            </para>
+            <para>
+            EventSource will not modify this client's properties, so if you call <see cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.HttpMessageHandler(System.Net.Http.HttpMessageHandler)"/>
+            or <see cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.ConnectionTimeout(System.TimeSpan)"/>, those methods will be ignored.
+            </para>
+            </remarks>
+            <param name="client">an HttpClient instance, or null to use the default behavior</param>
+            <returns>the builder</returns>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ConfigurationBuilder.Method(System.Net.Http.HttpMethod)">
+            <summary>
+            Sets the HTTP method that will be used when connecting to the EventSource API.
+            </summary>
+            <remarks>
+            By default, this is <see cref="P:System.Net.Http.HttpMethod.Get"/>.
+            </remarks>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ConfigurationBuilder.RequestBodyFactory(System.Func{System.Net.Http.HttpContent})">
+            <summary>
+            Sets a factory for HTTP request body content, if the HTTP method is one that allows a request body.
+            </summary>
+            <remarks>
+            This is in the form of a factory function because the request may need to be sent more than once.
+            </remarks>
+            <param name="factory">the factory function, or null for none</param>
+            <returns>the builder</returns>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ConfigurationBuilder.RequestBody(System.String,System.String)">
+            <summary>
+            Equivalent <see cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.RequestBodyFactory(System.Func{System.Net.Http.HttpContent})"/>, but for content
+            that is a simple string.
+            </summary>
+            <param name="bodyString">the content</param>
+            <param name="contentType">the Content-Type header</param>
+            <returns>the builder</returns>
+        </member>
+        <member name="T:LaunchDarkly.EventSource.Constants">
+            <summary>
+            An internal class used to hold static values used when processing Server Sent Events.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.EventSource.Constants.AcceptHttpHeader">
+            <summary>
+            The HTTP header name for Accept.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.EventSource.Constants.LastEventIdHttpHeader">
+            <summary>
+            The HTTP header name for the last event identifier.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.EventSource.Constants.EventStreamContentType">
+            <summary>
+            The HTTP header value for the Content Type.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.EventSource.Constants.RetryField">
+            <summary>
+            The event type name for a Retry in a Server Sent Event.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.EventSource.Constants.IdField">
+            <summary>
+            The identifier field name in a Server Sent Event.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.EventSource.Constants.EventField">
+            <summary>
+            The event type field name in a Server Sent Event.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.EventSource.Constants.DataField">
+            <summary>
+            The data field name in a Server Sent Event.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.EventSource.Constants.MessageField">
+            <summary>
+            The message field name in a Server Sent Event.
+            </summary>
+        </member>
+        <member name="T:LaunchDarkly.EventSource.EventParser">
+            <summary>
+            An internal class containing helper methods to parse Server Sent Event data.
+            </summary>
+        </member>
+        <member name="T:LaunchDarkly.EventSource.EventParser.Result">
+            <summary>
+            The result returned by <see cref="M:LaunchDarkly.EventSource.EventParser.ParseLineString(System.String)"/> or <see cref="M:LaunchDarkly.EventSource.EventParser.ParseLineUtf8Bytes(LaunchDarkly.EventSource.Utf8ByteSpan)"/>.
+            </summary>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.EventParser.ParseLineString(System.String)">
+            <summary>
+            Attempts to parse a single non-empty line of SSE content that was read as a string. Empty lines
+            should not be not passed to this method.
+            </summary>
+            <param name="line">a line that was read from the stream, not including any trailing CR/LF</param>
+            <returns>a <see cref="T:LaunchDarkly.EventSource.EventParser.Result"/> containing the parsed field or comment; <c>ValueString</c> will
+            be set rather than <c>ValueBytes</c></returns>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.EventParser.ParseLineUtf8Bytes(LaunchDarkly.EventSource.Utf8ByteSpan)">
+            <summary>
+            Attempts to parse a single non-empty line of SSE content that was read as UTF-8 bytes. Empty lines
+            should not be not passed to this method.
+            </summary>
+            <param name="line">a line that was read from the stream, not including any trailing CR/LF</param>
+            <returns>a <see cref="T:LaunchDarkly.EventSource.EventParser.Result"/> containing the parsed field or comment; <c>ValueBytes</c>
+            will be set rather than <c>ValueString</c></returns>
+        </member>
+        <member name="T:LaunchDarkly.EventSource.EventSource">
+            <summary>
+            Provides an EventSource client for consuming Server-Sent Events. Additional details on the Server-Sent Events spec
+            can be found at https://html.spec.whatwg.org/multipage/server-sent-events.html
+            </summary>
+        </member>
+        <member name="E:LaunchDarkly.EventSource.EventSource.Opened">
+            <inheritdoc/>
+        </member>
+        <member name="E:LaunchDarkly.EventSource.EventSource.Closed">
+            <inheritdoc/>
+        </member>
+        <member name="E:LaunchDarkly.EventSource.EventSource.MessageReceived">
+            <inheritdoc/>
+        </member>
+        <member name="E:LaunchDarkly.EventSource.EventSource.CommentReceived">
+            <inheritdoc/>
+        </member>
+        <member name="E:LaunchDarkly.EventSource.EventSource.Error">
+            <inheritdoc/>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.EventSource.ReadyState">
+            <inheritdoc/>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.EventSource.#ctor(LaunchDarkly.EventSource.Configuration)">
+            <summary>
+            Initializes a new instance of the <see cref="T:LaunchDarkly.EventSource.EventSource" /> class.
+            </summary>
+            <param name="configuration">the configuration</param>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.EventSource.#ctor(System.Uri)">
+            <summary>
+            Shortcut for initializing an <see cref="T:LaunchDarkly.EventSource.EventSource"/> with only a stream URI
+            and no custom properties.
+            </summary>
+            <param name="uri">the stream URI</param>
+            <exception cref="T:System.ArgumentNullException">if the URI is null</exception>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.EventSource.StartAsync">
+            <inheritdoc/>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.EventSource.Restart(System.Boolean)">
+            <inheritdoc/>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.EventSource.Close">
+            <summary>
+            Closes the connection to the SSE server. The <c>EventSource</c> cannot be reopened after this.
+            </summary>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.EventSource.Dispose">
+            <summary>
+            Equivalent to calling <see cref="M:LaunchDarkly.EventSource.EventSource.Close"/>.
+            </summary>
+        </member>
+        <member name="E:LaunchDarkly.EventSource.EventSourceService.ConnectionOpened">
+            <summary>
+            Occurs when the connection to the EventSource API has been opened.
+            </summary>
+        </member>
+        <member name="E:LaunchDarkly.EventSource.EventSourceService.ConnectionClosed">
+            <summary>
+            Occurs when the connection to the EventSource API has been closed.
+            </summary>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.EventSourceService.GetDataAsync(System.Action{System.String},System.Action{LaunchDarkly.EventSource.Utf8ByteSpan},System.String,System.Threading.CancellationToken)">
+            <summary>
+            Initiates the request to the EventSource API and parses Server Sent Events received by the API.
+            </summary>
+            <returns>A <see cref="T:System.Threading.Tasks.Task"/> A task that represents the work queued to execute in the ThreadPool.</returns>
+        </member>
+        <member name="T:LaunchDarkly.EventSource.EventSourceServiceCancelledException">
+            <summary>
+            General superclass for exceptions that caused the EventSource to disconnect or fail to establish
+            a connection.
+            </summary>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.EventSourceServiceCancelledException.#ctor(System.String)">
+            <summary>
+            Creates a new instance.
+            </summary>
+            <param name="message">the exception message</param>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.EventSourceServiceCancelledException.#ctor(System.String,System.Exception)">
+            <summary>
+            Creates a new instance with an inner exception.
+            </summary>
+            <param name="message">the exception message</param>
+            <param name="innerException">the inner exception</param>
+        </member>
+        <member name="T:LaunchDarkly.EventSource.EventSourceServiceUnsuccessfulResponseException">
+            <summary>
+            Indicates that the EventSource was able to establish an HTTP connection, but received a
+            non-successful status code.
+            </summary>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.EventSourceServiceUnsuccessfulResponseException.StatusCode">
+            <summary>
+            The HTTP status code of the response.
+            </summary>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.EventSourceServiceUnsuccessfulResponseException.#ctor(System.Int32)">
+            <summary>
+            Creates a new instance.
+            </summary>
+            <param name="statusCode">the HTTP status code of the response</param>
+        </member>
+        <member name="T:LaunchDarkly.EventSource.ExceptionEventArgs">
+            <summary>
+            Provides exception data raised in the EventSource <see cref="E:LaunchDarkly.EventSource.EventSource.Error" /> event. 
+            </summary>
+            <seealso cref="T:System.EventArgs" />
+        </member>
+        <member name="P:LaunchDarkly.EventSource.ExceptionEventArgs.Exception">
+            <summary>
+            Gets the <see cref="T:System.Exception"/> that represents the error that occurred.
+            </summary>
+            <value>
+            The exception.
+            </value>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ExceptionEventArgs.#ctor(System.Exception)">
+            <summary>
+            Initializes a new instance of the <see cref="T:LaunchDarkly.EventSource.ExceptionEventArgs"/> class.
+            </summary>
+            <param name="ex">A <see cref="T:System.Exception"/> that represents the error that occurred.</param>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.ExponentialBackoffWithDecorrelation.GetNextBackOff">
+            <summary>
+            Gets the next backoff duration and increments the reconnect attempt count
+            </summary>
+        </member>
+        <member name="T:LaunchDarkly.EventSource.IEventSource">
+            <summary>
+            This interface defines the public members of <see cref="T:LaunchDarkly.EventSource.EventSource"/>.
+            </summary>
+        </member>
+        <member name="E:LaunchDarkly.EventSource.IEventSource.Opened">
+            <summary>
+            Occurs when the connection to the EventSource API has been opened.
+            </summary>
+        </member>
+        <member name="E:LaunchDarkly.EventSource.IEventSource.Closed">
+            <summary>
+            Occurs when the connection to the EventSource API has been closed.
+            </summary>
+        </member>
+        <member name="E:LaunchDarkly.EventSource.IEventSource.MessageReceived">
+            <summary>
+            Occurs when a Server Sent Event from the EventSource API has been received.
+            </summary>
+        </member>
+        <member name="E:LaunchDarkly.EventSource.IEventSource.CommentReceived">
+            <summary>
+            Occurs when a comment has been received from the EventSource API.
+            </summary>
+        </member>
+        <member name="E:LaunchDarkly.EventSource.IEventSource.Error">
+            <summary>
+            Occurs when an error has happened when the EventSource is open and processing Server Sent Events.
+            </summary>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.IEventSource.ReadyState">
+            <summary>
+            Gets the state of the EventSource connection.
+            </summary>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.IEventSource.StartAsync">
+            <summary>
+            Initiates a connection to the SSE server and begins parsing events.
+            </summary>
+            <returns>a <see cref="T:System.Threading.Tasks.Task"/> that will be completed only when the
+            <c>EventSource</c> is closed</returns>
+            <exception cref="T:System.InvalidOperationException">if the method was called again after the
+            stream connection was already active</exception>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.IEventSource.Restart(System.Boolean)">
+            <summary>
+            Triggers the same "close and retry" behavior as if an error had been encountered on the stream.
+            </summary>
+            <remarks>
+            <para>
+            If the stream is currently active, this closes the connection, waits for some amount of time
+            as determined by the usual backoff behavior (and <paramref name="resetBackoffDelay"/>), and
+            then attempts to reconnect. If the stream is not yet connected, is already waiting to
+            reconnect, or has been permanently shut down, this has no effect.
+            </para>
+            <para>
+            The method returns immediately without waiting for the reconnection to happen. You will
+            receive <see cref="E:LaunchDarkly.EventSource.IEventSource.Closed"/> and <see cref="E:LaunchDarkly.EventSource.IEventSource.Opened"/> events when it does happen (or an
+            <see cref="E:LaunchDarkly.EventSource.IEventSource.Error"/> event if the new connection attempt fails).
+            </para>
+            </remarks>
+            <param name="resetBackoffDelay">true if the delay before reconnection should be reset to
+            the lowest level (<see cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.InitialRetryDelay(System.TimeSpan)"/>); false if it
+            should increase according to the usual exponential backoff logic</param>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.IEventSource.Close">
+            <summary>
+            Closes the connection to the SSE server. The <c>EventSource</c> cannot be reopened after this.
+            </summary>
+        </member>
+        <member name="T:LaunchDarkly.EventSource.MessageEvent">
+            <summary>
+            Represents the Server-Sent Event message received from a stream.
+            </summary>
+            <remarks>
+            <para>
+            An SSE event consists of an event name (defaulting to "message" if not specified),
+            a data string, and an optional "ID" string that the server may provide.
+            </para>
+            <para>
+            The event name and ID properties are always stored as strings. By default, the
+            data property is also stored as a string. However, in some applications, it may
+            be desirable to represent the data as a UTF-8 byte array (for instance, if you are
+            using the <c>System.Text.Json</c> API to parse JSON data).
+            </para>
+            <para>
+            Since strings in .NET use two-byte UTF-16 characters, if you have a large block of
+            UTF-8 data it is considerably more efficient to process it in its original form
+            rather than converting it to or from a string. <see cref="T:LaunchDarkly.EventSource.EventSource"/> stores
+            data as strings by default, but you set <see cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.PreferDataAsUtf8Bytes(System.Boolean)"/>
+            it can store the raw UTF-8 data instead. In either case, <c>MessageEvent</c> will
+            convert types transparently so that you can read either <see cref="P:LaunchDarkly.EventSource.MessageEvent.Data"/>
+            or <see cref="P:LaunchDarkly.EventSource.MessageEvent.DataUtf8Bytes"/>.
+            </para>
+            </remarks>
+        </member>
+        <member name="F:LaunchDarkly.EventSource.MessageEvent.DefaultName">
+            <summary>
+            The default value of <see cref="P:LaunchDarkly.EventSource.MessageEvent.Name"/> if the SSE stream did not specify an
+            <c>event:</c> field.
+            </summary>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.MessageEvent.#ctor(System.String,System.String,System.String,System.Uri)">
+            <summary>
+            Initializes a new instance of the <see cref="T:LaunchDarkly.EventSource.MessageEvent"/> class.
+            </summary>
+            <param name="name">the event name</param>
+            <param name="data">the data received in the server-sent event</param>
+            <param name="lastEventId">the last event identifier, or null</param>
+            <param name="origin">the origin URI of the stream</param>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.MessageEvent.#ctor(System.String,LaunchDarkly.EventSource.Utf8ByteSpan,System.String,System.Uri)">
+            <summary>
+            Initializes a new instance of the <see cref="T:LaunchDarkly.EventSource.MessageEvent"/> class,
+            providing the data as a UTF-8 byte span.
+            </summary>
+            <param name="name">the event name</param>
+            <param name="dataUtf8Bytes">the data received in the server-sent event;
+              the <c>MessageEvent</c> will store a reference to the byte array, rather than
+              copying it, so it should not be modified afterward by the caller
+            </param>
+            <param name="lastEventId">the last event identifier, or null</param>
+            <param name="origin">the origin URI of the stream</param>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.MessageEvent.#ctor(System.String,System.String,System.Uri)">
+            <summary>
+            Initializes a new instance of the <see cref="T:LaunchDarkly.EventSource.MessageEvent" /> class.
+            </summary>
+            <param name="name">the event name</param>
+            <param name="data">the data received in the server-sent event</param>
+            <param name="origin">the origin URI of the stream</param>
+            <remarks>
+            The <see cref="P:LaunchDarkly.EventSource.MessageEvent.LastEventId" /> will be initialized to null.
+            </remarks>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.MessageEvent.Name">
+            <summary>
+            The event name.
+            </summary>
+            <remarks>
+            This can be specified by the server in the <c>event:</c> field in the SSE data, as in
+            <c>event: my-event-name</c>. If there is no <c>event:</c> field, the default name
+            is <see cref="F:LaunchDarkly.EventSource.MessageEvent.DefaultName"/>.
+            </remarks>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.MessageEvent.Data">
+            <summary>
+            Gets the data received in the event as a string.
+            </summary>
+            <remarks>
+            <para>
+            This is the value of the <c>data:</c> field in the SSE data; if there are multiple
+            <c>data:</c> lines for a single event, they are concatenated with <c>"\n"</c>.
+            </para>
+            <para>
+            If the data was originally stored as a string, the same string is returned.
+            If it was stored as a UTF-8 byte array, the bytes are copied to a new string.
+            </para>
+            </remarks>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.MessageEvent.DataUtf8Bytes">
+            <summary>
+            Gets the data received in the event as a UTF-8 byte span.
+            </summary>
+            <remarks>
+            <para>
+            This is the value of the <c>data:</c> field in the SSE data; if there are multiple
+            <c>data:</c> lines for a single event, they are concatenated with <c>"\n"</c>.
+            </para>
+            <para>
+            If the data was originally stored as UTF-8 bytes, the returned value refers to
+            the same array, offset, and length (it is the caller's responsibility not to
+            modify the byte array). If it was originally stored as a string, the string
+            is copied to a new byte array.
+            </para>
+            </remarks>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.MessageEvent.LastEventId">
+            <summary>
+            Gets the last event identifier received in the server-sent event.
+            </summary>
+            <remarks>
+            This is the value of the <c>id:</c> field in the SSE data. If there is no such
+            field, it is null. You can use a previously received <see cref="P:LaunchDarkly.EventSource.MessageEvent.LastEventId"/>
+            value with <see cref="M:LaunchDarkly.EventSource.ConfigurationBuilder.LastEventId(System.String)"/> when starting
+            a new <see cref="T:LaunchDarkly.EventSource.EventSource"/> to tell the server what the last event you
+            received was, although not all servers support this.
+            </remarks>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.MessageEvent.Origin">
+            <summary>
+            Gets the origin URI of the stream that generated the server-sent event.
+            </summary>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.MessageEvent.IsDataUtf8Bytes">
+            <summary>
+            True if the event data is stored internally as UTF-8 bytes.
+            </summary>
+            <remarks>
+            The data can be accessed with either <see cref="P:LaunchDarkly.EventSource.MessageEvent.Data"/> or <see cref="P:LaunchDarkly.EventSource.MessageEvent.DataUtf8Bytes"/>
+            regardless of the value of this property. The property only indicates the <i>original</i>
+            format of the data, so, for instance, if it is <see langword="true"/> then
+            reading <see cref="P:LaunchDarkly.EventSource.MessageEvent.Data"/> will have more overhead (due to copying) than
+            reading <see cref="P:LaunchDarkly.EventSource.MessageEvent.DataUtf8Bytes"/>.
+            </remarks>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.MessageEvent.Equals(System.Object)">
+            <summary>
+            Determines whether the specified <see cref="T:System.Object" /> is equal to this instance.
+            </summary>
+            <remarks>
+            This method is potentially inefficient and should be used only in testing.
+            </remarks>
+            <param name="obj">the <see cref="T:System.Object" /> to compare with this instance</param>
+            <returns><see langword="true"/> if the instances are equal</returns>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.MessageEvent.GetHashCode">
+            <summary>
+            Returns a hash code for this instance.
+            </summary>
+            <returns>
+            A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table.
+            This method is potentially inefficient and should be used only in testing.
+            </returns>
+        </member>
+        <member name="T:LaunchDarkly.EventSource.MessageReceivedEventArgs">
+            <summary>
+            The parameter type for a <see cref="E:LaunchDarkly.EventSource.EventSource.MessageReceived"/> event handler.
+            </summary>
+            <seealso cref="T:System.EventArgs" />
+        </member>
+        <member name="P:LaunchDarkly.EventSource.MessageReceivedEventArgs.Message">
+            <summary>
+            A <see cref="T:LaunchDarkly.EventSource.MessageEvent"/> representing the event that was received from the
+            SSE stream.
+            </summary>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.MessageReceivedEventArgs.EventName">
+            <summary>
+            Shortcut for getting the <see cref="P:LaunchDarkly.EventSource.MessageEvent.Name"/> property of the event.
+            </summary>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.MessageReceivedEventArgs.#ctor(LaunchDarkly.EventSource.MessageEvent)">
+            <summary>
+            Initializes a new instance.
+            </summary>
+            <param name="message">the <see cref="T:LaunchDarkly.EventSource.MessageEvent"/> received from the stream</param>
+        </member>
+        <member name="T:LaunchDarkly.EventSource.ReadTimeoutException">
+            <summary>
+            An exception that indicates that the configured read timeout elapsed without receiving
+            any new data from the server.
+            </summary>
+            <remarks>
+            Socket connections can fail silently, in which case an EventSource client without a read
+            timeout would hang forever waiting for new data. A read timeout allows you to make a new
+            stream connection in this case. The server can send periodic comment lines (":\n") to
+            keep the client from timing out if the connection is still working.
+            </remarks>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.ReadTimeoutException.Message">
+            <inheritdoc/>
+        </member>
+        <member name="T:LaunchDarkly.EventSource.ReadyState">
+            <summary>
+            Represents the state of the connection in the <see cref="T:LaunchDarkly.EventSource.EventSource"/> class.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.EventSource.ReadyState.Raw">
+            <summary>
+            The initial state of the connection.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.EventSource.ReadyState.Connecting">
+            <summary>
+            The connection has not yet been established, or it was closed and is reconnecting.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.EventSource.ReadyState.Open">
+            <summary>
+            The connection is open and is processing events as it receives them.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.EventSource.ReadyState.Closed">
+            <summary>
+            The connection is closed. This could also occur when an error is received.
+            </summary>
+        </member>
+        <member name="F:LaunchDarkly.EventSource.ReadyState.Shutdown">
+            <summary>
+            The connection has been shutdown explicitly by the consumer using the <see cref="M:LaunchDarkly.EventSource.EventSource.Close"/> method.
+            </summary>
+        </member>
+        <member name="T:LaunchDarkly.EventSource.Resources">
+            <summary>
+              A strongly-typed resource class, for looking up localized strings, etc.
+              This class was generated by MSBuild using the GenerateResource task.
+              To add or remove a member, edit your .resx file then rerun MSBuild.
+            </summary>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Resources.ResourceManager">
+            <summary>
+              Returns the cached ResourceManager instance used by this class.
+            </summary>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Resources.Culture">
+            <summary>
+              Overrides the current thread's CurrentUICulture property for all
+              resource lookups using this strongly typed resource class.
+            </summary>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Resources.ErrorAlreadyStarted">
+            <summary>
+              Looks up a localized string similar to Invalid attempt to call Start() while the connection state is {0}.
+            </summary>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Resources.ErrorEmptyResponse">
+            <summary>
+              Looks up a localized string similar to HTTP response had no body.
+            </summary>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Resources.ErrorHttpStatus">
+            <summary>
+              Looks up a localized string similar to Unexpected HTTP status code {0} from server.
+            </summary>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Resources.ErrorReadTimeout">
+            <summary>
+              Looks up a localized string similar to Read timeout elapsed with no new data from server; connection may have been silently dropped.
+            </summary>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Resources.ErrorWrongContentType">
+            <summary>
+              Looks up a localized string similar to Unexpected HTTP content type &quot;{0}&quot;; should be &quot;text/event-stream&quot;.
+            </summary>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Resources.ErrorWrongEncoding">
+            <summary>
+              Looks up a localized string similar to Unexpected character encoding {0}; should be UTF-8.
+            </summary>
+        </member>
+        <member name="T:LaunchDarkly.EventSource.StateChangedEventArgs">
+            <summary>
+            Provides data for the state of the <see cref="T:LaunchDarkly.EventSource.EventSource"/> connection.
+            </summary>
+            <seealso cref="T:System.EventArgs" />
+        </member>
+        <member name="P:LaunchDarkly.EventSource.StateChangedEventArgs.ReadyState">
+            <summary>
+            Gets the state of the EventSource connection.
+            </summary>
+            <value>
+            One of the <see cref="P:LaunchDarkly.EventSource.EventSource.ReadyState"/> values, which represents the state of the EventSource connection.
+            </value>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.StateChangedEventArgs.#ctor(LaunchDarkly.EventSource.ReadyState)">
+            <summary>
+            Initializes a new instance of the <see cref="T:LaunchDarkly.EventSource.StateChangedEventArgs"/> class.
+            </summary>
+            <param name="readyState">One of the <see cref="P:LaunchDarkly.EventSource.EventSource.ReadyState"/> values, which represents the state of the EventSource connection.</param>
+        </member>
+        <member name="T:LaunchDarkly.EventSource.Utf8ByteSpan">
+            <summary>
+            Points to a span of UTF-8-encoded text in a buffer.
+            </summary>
+            <remarks>
+            This is similar to the <c>Span</c> type in .NET 5. It is used internally by
+            <c>EventSource</c> to store event data if the stream is using UTF-8 encoding.
+            If so, reading <see cref="P:LaunchDarkly.EventSource.MessageEvent.DataUtf8Bytes"/> will return the same
+            byte array, to avoid unnecessary copying.
+            </remarks>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Utf8ByteSpan.Data">
+            <summary>
+            The byte array containing the data. May be null if <see cref="P:LaunchDarkly.EventSource.Utf8ByteSpan.Length"/> is zero.
+            </summary>
+            <remarks>
+            It is the caller's responsibility not to modify the array.
+            </remarks>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Utf8ByteSpan.Offset">
+            <summary>
+            The offset of the first relevant byte of data within the array. This may be
+            greater than zero if the span represents a subset of a larger buffer.
+            </summary>
+        </member>
+        <member name="P:LaunchDarkly.EventSource.Utf8ByteSpan.Length">
+            <summary>
+            The number of bytes of relevant data within the array. This may be less than
+            <c>Data.Length</c> if the span represents a subset of a larger buffer.
+            </summary>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.Utf8ByteSpan.#ctor(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Constructs a new instance.
+            </summary>
+            <param name="data">The byte array containing the data.</param>
+            <param name="offset">The offset of the first relevant byte of data within the array.</param>
+            <param name="length">The number of bytes of relevant data within the array.</param>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.Utf8ByteSpan.#ctor(System.String)">
+            <summary>
+            Constructs a new instance by copying a string.
+            </summary>
+            <param name="s">A string to convert to UTF-8 bytes.</param>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.Utf8ByteSpan.GetString">
+            <summary>
+            Converts the UTF-8 byte data to a string.
+            </summary>
+            <returns>A new string.</returns>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.Utf8ByteSpan.Equals(LaunchDarkly.EventSource.Utf8ByteSpan)">
+            <summary>
+            Tests whether the bytes in this span are the same as another span.
+            </summary>
+            <param name="other">Another <c>Utf8ByteSpan</c>.</param>
+            <returns>True if the two spans have the same length and the same
+            data, starting from each one's <c>Offset</c>.</returns>
+        </member>
+        <member name="M:LaunchDarkly.EventSource.Utf8ByteSpan.Equals(System.String)">
+            <summary>
+            Tests whether the bytes in this span are the same as the UTF-8 encoding
+            of the specified string.
+            </summary>
+            <remarks>
+            This method is potentially inefficient and should be used only in testing.
+            </remarks>
+            <param name="s">A string.</param>
+            <returns>True if the bytes are equivalent.</returns>
+        </member>
+    </members>
+</doc>

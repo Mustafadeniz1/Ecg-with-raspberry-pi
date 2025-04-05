@@ -1,0 +1,121 @@
+using System;
+using System.Windows.Forms;
+using System.Windows.Forms.DataVisualization.Charting;
+
+namespace ECG_ARAYÜZ1
+{
+    partial class Form2
+    {
+        private System.ComponentModel.IContainer components = null;
+        private Button ConnectButton;
+        private Button DisconnectButton;
+        private TextBox DataTextBox;
+        private Label StatusLabel;
+        private Timer dataTimer;
+        private Chart ecgChart;
+        private Label lblBPM;  // BPM gösteren Label
+
+        private void InitializeComponent()
+        {
+            this.components = new System.ComponentModel.Container();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Series series1 = new System.Windows.Forms.DataVisualization.Charting.Series();
+            this.ConnectButton = new System.Windows.Forms.Button();
+            this.DisconnectButton = new System.Windows.Forms.Button();
+            this.DataTextBox = new System.Windows.Forms.TextBox();
+            this.StatusLabel = new System.Windows.Forms.Label();
+            this.dataTimer = new System.Windows.Forms.Timer(this.components);
+            this.ecgChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
+            this.lblBPM = new System.Windows.Forms.Label();
+            ((System.ComponentModel.ISupportInitialize)(this.ecgChart)).BeginInit();
+            this.SuspendLayout();
+            // 
+            // ConnectButton
+            // 
+            this.ConnectButton.BackColor = System.Drawing.Color.Green;
+            this.ConnectButton.ForeColor = System.Drawing.Color.White;
+            this.ConnectButton.Location = new System.Drawing.Point(20, 20);
+            this.ConnectButton.Name = "ConnectButton";
+            this.ConnectButton.Size = new System.Drawing.Size(100, 30);
+            this.ConnectButton.TabIndex = 0;
+            this.ConnectButton.Text = "Bağlan";
+            this.ConnectButton.UseVisualStyleBackColor = false;
+            this.ConnectButton.Click += new System.EventHandler(this.ConnectButton_Click);
+            // 
+            // DisconnectButton
+            // 
+            this.DisconnectButton.BackColor = System.Drawing.Color.Red;
+            this.DisconnectButton.ForeColor = System.Drawing.Color.White;
+            this.DisconnectButton.Location = new System.Drawing.Point(140, 20);
+            this.DisconnectButton.Name = "DisconnectButton";
+            this.DisconnectButton.Size = new System.Drawing.Size(100, 30);
+            this.DisconnectButton.TabIndex = 1;
+            this.DisconnectButton.Text = "Kes";
+            this.DisconnectButton.UseVisualStyleBackColor = false;
+            this.DisconnectButton.Click += new System.EventHandler(this.DisconnectButton_Click);
+            // 
+            // DataTextBox
+            // 
+            this.DataTextBox.Location = new System.Drawing.Point(42, 70);
+            this.DataTextBox.Multiline = true;
+            this.DataTextBox.Name = "DataTextBox";
+            this.DataTextBox.Size = new System.Drawing.Size(400, 100);
+            this.DataTextBox.TabIndex = 2;
+            // 
+            // StatusLabel
+            // 
+            this.StatusLabel.Location = new System.Drawing.Point(20, 200);
+            this.StatusLabel.Name = "StatusLabel";
+            this.StatusLabel.Size = new System.Drawing.Size(100, 23);
+            this.StatusLabel.TabIndex = 3;
+            this.StatusLabel.Text = "Bağlantı Yok";
+            // 
+            // dataTimer
+            // 
+            this.dataTimer.Tick += new System.EventHandler(this.dataTimer_Tick);
+            // 
+            // ecgChart
+            // 
+            chartArea1.Name = "ECG Area";
+            this.ecgChart.ChartAreas.Add(chartArea1);
+            this.ecgChart.Location = new System.Drawing.Point(20, 230);
+            this.ecgChart.Name = "ecgChart";
+            series1.BorderWidth = 2;
+            series1.ChartArea = "ECG Area";
+            series1.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Line;
+            series1.Name = "ECG";
+            this.ecgChart.Series.Add(series1);
+            this.ecgChart.Size = new System.Drawing.Size(450, 200);
+            this.ecgChart.TabIndex = 4;
+            this.ecgChart.Click += new System.EventHandler(this.ecgChart_Click);
+            // 
+            // lblBPM
+            // 
+            this.lblBPM.Location = new System.Drawing.Point(250, 200);
+            this.lblBPM.Name = "lblBPM";
+            this.lblBPM.Size = new System.Drawing.Size(100, 30);
+            this.lblBPM.TabIndex = 5;
+            // 
+            // Form2
+            // 
+            this.ClientSize = new System.Drawing.Size(525, 450);
+            this.Controls.Add(this.ConnectButton);
+            this.Controls.Add(this.DisconnectButton);
+            this.Controls.Add(this.DataTextBox);
+            this.Controls.Add(this.StatusLabel);
+            this.Controls.Add(this.ecgChart);
+            this.Controls.Add(this.lblBPM);
+            this.Name = "Form2";
+            this.Text = "ECG Monitor";
+            ((System.ComponentModel.ISupportInitialize)(this.ecgChart)).EndInit();
+            this.ResumeLayout(false);
+            this.PerformLayout();
+
+        }
+
+        private void ecgChart_Click(object sender, EventArgs e)
+        {
+           
+        }
+    }
+}
